@@ -1,6 +1,8 @@
 import sys
 import socket
 import time
+import datetime
+from datetime import datetime
 import os
 
 
@@ -23,11 +25,11 @@ class AE33_device:
 
         self.buff = ''
         self.info = ''
-        self.IPname = '213.131.1.46'
+        self.IPname = '192.168.1.62'
         self.IsConnected = 1
         self.Port = 8002  ## port number
         self.sock = None  ## socket
-
+        #sock = socket.socket()
         self.fill_header()
 
 
@@ -60,6 +62,14 @@ class AE33_device:
             else:
                 self.pathfile = param
                 os.system("mkdir " + param)
+                path = self.pathfile + '\\raw\\'
+                os.system("mkdir " + path)
+                path = self.pathfile + '\ddat\\'
+                os.system("mkdir " + path)
+                path = self.pathfile + '\wdat\\'
+                os.system("mkdir " + path)
+                path = self.pathfile + '\\table\\'
+                os.system("mkdir " + path)
     # \todo ПОПРАВИТЬ в конфигурацилонном файле СЛЕШИ В ИМЕНИ ДИРЕКТОРИИ  !!!   для ВИНДА
 
 
@@ -95,12 +105,15 @@ class AE33_device:
 
 
     def connect(self):
-        if self.active == -1:
-            return -1
-        
+        #if self.active == -1:
+        #    return -1
         #socket.socket(family='AF_INET', type='SOCK_STREAM', proto=0, fileno=None)
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM | socket.SOCK_NONBLOCK);
-        self.sock.connect((self.IPname, self.Port)) 
+        #self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM | socket.SOCK_NONBLOCK)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #self.sock = socket.socket()
+        #sock = socket.socket()
+        self.sock.connect((self.IPname, self.Port))
+        #sock.connect(('localhost', 3000)) 
         ## \todo проверить, что связь установлена
 
 
@@ -113,11 +126,13 @@ class AE33_device:
         if command == 'FETCH DATA':
             command += ' ' + str(start) + ' ' + str(stop)
         command += '\r\n'
+        print(command)
 
         ## --- send command ---
         time.sleep(1)
         ##self.sock.send(bytes(command))
         bytes = self.sock.send(command.encode())
+        print(bytes)
         ## \todo проверить, что все отправилось
         if bytes != len(command):
             print("request: Error in sending data!! ") 
@@ -129,10 +144,40 @@ class AE33_device:
         ## --- read data ---
         time.sleep(1)
         attempts = 0
-        self.buff = self.sock.recv()
-        while(len(buff) == 0 and attempts < 10):
+        buf = self.sock.recv(20000)
+        #print('qq,  buf=',len(buf),buf)
+        #print(buf)
+
+        buff2 = buf.decode("UTF-8")
+        buff2 = buff2.split("\r\nAE33>")
+        #print('qq,  buff2=',len(buff2),buff2)
+
+        #self.buff = buf.decode("UTF-8")
+        if "HELLO" in command:
+            self.buff = buff2[1]
+        else:
+            self.buff = buff2[0]
+
+        print('qq,  self.buff=',len(self.buff))
+        print(self.buff)
+        #self.buff = self.buff.split("AE33>")
+        #print(self.buff)
+
+        while(len(buf) == 0 and attempts < 10):
+            print('not data,  buf=',len(buf))
             time.sleep(1)
-            self.buff = self.sock.recv()
+            buf = self.sock.recv(20000)
+            print('qq,  buf=',len(buf))
+            print(buf)
+            buff2 = buf.decode("UTF-8")
+            buff2 = buff2.split("\r\nAE33>")
+            #self.buff = buf.decode("UTF-8")
+            if "HELLO" in command:
+                self.buff = buff2[1]
+            else:
+                self.buff = buff2[0]
+            #self.buff = self.buff.split("AE33>")
+            print(self.buff)
             attempts += 1
         if attempts >= 10:
             print("request: Error in receive")
@@ -140,11 +185,17 @@ class AE33_device:
             return 2
         
         if "MAXID" in command:
-            self.MAXID = int(buff)
+            #self.buff = self.buff.split("AE33>")
+            #print(self.buff)
+            self.MAXID = int(self.buff)
+            print(self.MAXID)
         if "MINID" in command:
-            self.MINID = int(buff)
+            #self.buff = self.buff.split("AE33>")
+            #print(self.buff)
+            self.MINID = int(self.buff)
+            print(self.MINID)
         if '?' in command:
-            self.info = buff
+            self.info = self.buff
         if "FETCH" in command:
             self.parse_raw_data()
         if "AE33" in command:
@@ -156,7 +207,7 @@ class AE33_device:
     def parse_raw_data(self):
         if len(self.buff) < 10:
             return
-        self.buff = self.buff.split("AE33>")
+        #self.buff = self.buff.split("AE33>")
         for line in self.buff:
             if len(line) < 50:
                 continue
@@ -164,7 +215,7 @@ class AE33_device:
             mm, dd, yy = line.split("|")[2][:10].split('/')
             if mm != self.mm or yy != self.yy:
                 filename = '_'.join((yy, mm)) + '_AE33-S08-01006.raw'
-                filename = self.pathfile + filename
+                filename = self.pathfile +'\\raw\\' + filename
                 if self.file_raw:
                     self.file_raw.close()
                 self.file_raw = open(filename, "a")
@@ -186,30 +237,43 @@ class AE33_device:
         ## main
         if len(self.buff) < 10:
             return
-
+        #self.buff = self.buff.split("AE33>")
+        self.buff = self.buff.split("\r\n")
+        #self.buff = self.buff.split("\r\n")
         lastmm, lastyy = '0', '0'
         filename = ''
         lastline = ''
         need_check = True
         dateformat = "%Y/%m/%d %H:%M:%S"
+        print('lines:')
+        #print(self.buff)
         for line in self.buff[::-1]:
-            print(line)
+            print('lines:   ',line)
             yy, mm, _ = line.split()[0].split('/')
-            #print(yy, mm)
+            print(yy, mm)
 
             # for first line or new file
             if mm != lastmm or yy != lastyy:
                 filename = '_'.join((yy, mm)) + '_AE33-S08-01006.ddat'
-                filename = self.pathfile + filename
+                filename = self.pathfile +'\ddat\\' + filename
+                print(filename,mm,yy,lastmm,lastyy)
                 try:
                     ## file exists
                     f = open(filename, 'r')
                     lastline = f.readlines()[-1].split()
-                    lasttime = lastline[0] + ' ' + lastline[1]
-                    lasttime = datetime.strptime(lasttime, dateformat)
+                    print(lastline)
                     f.close()
+                    print('3')
+                    lasttime = lastline[0] + ' ' + lastline[1]
+                    print('1  ',lasttime)
+                    lasttime = datetime.strptime(lasttime, dateformat)
+                    print('2  ',lasttime)
+                    print('4',lastmm,lastyy,mm,yy)
+                    print('FILE EXIST',mm,yy,lastmm,lastyy)
                     lastmm = mm
+                    print('FILE EXIST',mm,yy,lastmm,lastyy)
                     lastyy = yy
+                    print('FILE EXIST',mm,yy,lastmm,lastyy)
                     need_check = True
                 except:
                     ## no file
@@ -217,6 +281,9 @@ class AE33_device:
                     f.write(self.file_header)
                     f.close()
                     lastline = []
+                    lastmm = mm
+                    lastyy = yy
+                    print('NOT FILE')
                     need_check = False
 
             ## check line
@@ -233,6 +300,5 @@ class AE33_device:
 
             ## write to file
             f = open(filename, 'a')
-            f.write(line)
-            f.write('\n')
+            f.write(line+'\n')
             f.close()
