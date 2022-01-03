@@ -3,6 +3,8 @@ import socket
 import time
 import datetime
 from datetime import datetime
+import matplotlib.pyplot as plt
+import pandas as pd
 import os
 
 
@@ -17,6 +19,7 @@ class AE33_device:
         self.yy_D = '0'      ##  year for filename of D-file
         self.mm_D = '0'      ## month for filename of D-file 
         self.pathfile = ''   ## work directory name
+        self.xlsfilename = ''      ## exl file name
         self.file_raw = None       ## file for raw data
         self.file_format_D = None  ## file for raw data
         self.file_header = ''
@@ -144,8 +147,8 @@ class AE33_device:
         ## --- read data ---
         time.sleep(1)
         attempts = 0
-        buf = self.sock.recv(20000)
-        #print('qq,  buf=',len(buf),buf)
+        buf = self.sock.recv(2000000)
+        print('qq,  buf(bytes)=',len(buf))
         #print(buf)
 
         buff2 = buf.decode("UTF-8")
@@ -158,17 +161,17 @@ class AE33_device:
         else:
             self.buff = buff2[0]
 
-        print('qq,  self.buff=',len(self.buff))
-        print(self.buff)
+        #print('qq,  self.buff=',len(self.buff))
+        #print(self.buff)
         #self.buff = self.buff.split("AE33>")
         #print(self.buff)
 
         while(len(buf) == 0 and attempts < 10):
             print('not data,  buf=',len(buf))
             time.sleep(1)
-            buf = self.sock.recv(20000)
-            print('qq,  buf=',len(buf))
-            print(buf)
+            buf = self.sock.recv(2000000)
+            print('qq,  buf(bytes)=',len(buf))
+            #print(buf)
             buff2 = buf.decode("UTF-8")
             buff2 = buff2.split("\r\nAE33>")
             #self.buff = buf.decode("UTF-8")
@@ -177,7 +180,7 @@ class AE33_device:
             else:
                 self.buff = buff2[0]
             #self.buff = self.buff.split("AE33>")
-            print(self.buff)
+            #print(self.buff)
             attempts += 1
         if attempts >= 10:
             print("request: Error in receive")
@@ -208,14 +211,16 @@ class AE33_device:
         if len(self.buff) < 10:
             return
         #self.buff = self.buff.split("AE33>")
+        print(self.buff)
         for line in self.buff:
             if len(line) < 50:
                 continue
-
+            print(line)
             mm, dd, yy = line.split("|")[2][:10].split('/')
             if mm != self.mm or yy != self.yy:
                 filename = '_'.join((yy, mm)) + '_AE33-S08-01006.raw'
                 filename = self.pathfile +'\\raw\\' + filename
+                print(filename)
                 if self.file_raw:
                     self.file_raw.close()
                 self.file_raw = open(filename, "a")
@@ -228,71 +233,81 @@ class AE33_device:
 
 
     def parse_format_D_data(self):
-        ## for test 
-        #f = open("buffer.txt")
-        #self.buff = f.read().split('\n')
-        #f.close()
-        #print(self.buff)
-
         ## main
         if len(self.buff) < 10:
             return
         #self.buff = self.buff.split("AE33>")
-        self.buff = self.buff.split("\r\n")
-        #self.buff = self.buff.split("\r\n")
+        if 'ix' in os.name:
+            self.buff = self.buff.split("\n")  ## for Linux
+        else:
+            self.buff = self.buff.split("\r\n") ## for Windows
+
         lastmm, lastyy = '0', '0'
         filename = ''
         lastline = ''
         need_check = True
         dateformat = "%Y/%m/%d %H:%M:%S"
-        print('lines:')
+        #print('lines:')
         #print(self.buff)
+
+        ## for excel data
+        header = self.file_header[self.file_header.find("Date"):].split("; ")
+        columns = ['Date(yyyy/MM/dd)', 'Time(hh:mm:ss)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6', 'BC7', 'BB(%)']
+        colnums = [header.index(x) for x in columns]      
+        rows_list = []
+        
         for line in self.buff[::-1]:
-            print('lines:   ',line)
+            #print('line:   ',line)
             yy, mm, _ = line.split()[0].split('/')
-            print(yy, mm)
+            #print(yy, mm)
 
             # for first line or new file
             if mm != lastmm or yy != lastyy:
+                ##### ddat file 
                 filename = '_'.join((yy, mm)) + '_AE33-S08-01006.ddat'
                 filename = self.pathfile +'\ddat\\' + filename
                 print(filename,mm,yy,lastmm,lastyy)
                 try:
-                    ## file exists
+                    ## ddat file exists
                     f = open(filename, 'r')
                     lastline = f.readlines()[-1].split()
-                    print(lastline)
+                    #print(lastline)
                     f.close()
                     print('3')
                     lasttime = lastline[0] + ' ' + lastline[1]
                     print('1  ',lasttime)
                     lasttime = datetime.strptime(lasttime, dateformat)
-                    print('2  ',lasttime)
                     print('4',lastmm,lastyy,mm,yy)
-                    print('FILE EXIST',mm,yy,lastmm,lastyy)
-                    lastmm = mm
-                    print('FILE EXIST',mm,yy,lastmm,lastyy)
-                    lastyy = yy
-                    print('FILE EXIST',mm,yy,lastmm,lastyy)
                     need_check = True
                 except:
                     ## no file
+                    print('NOT FILE', filename)
                     f = open(filename, 'a')        
                     f.write(self.file_header)
                     f.close()
                     lastline = []
-                    lastmm = mm
-                    lastyy = yy
-                    print('NOT FILE')
-                    need_check = False
+                    need_check = False 
+                lastmm = mm
+                lastyy = yy
+              
+            ## add line data to dataframe 
+            line_to_dataframe = [line.split()[i] for i in colnums]
+            #print("line_to_dataframe:>",line_to_dataframe)
+            line_to_dataframe = line_to_dataframe[:2]\
+                                + [int(x) for x in line_to_dataframe[2:-1]]\
+                                + [float(line_to_dataframe[-1])]
+            rows_list.append(line_to_dataframe)
+            #print(rows_list)
+               
 
-            ## check line
+            ## check line to be added to datafile
             if need_check: # and len(lastline):
-                print(line)
+                #print(line)
                 nowtime  = line.split()[0] + ' ' + line.split()[1]
-                print(nowtime)
+                #print(nowtime)
                 nowtime  = datetime.strptime(nowtime,  dateformat)
                 print(nowtime - lasttime)
+                ## if line was printed earlier
                 if nowtime <= lasttime:
                     continue
 
@@ -302,3 +317,66 @@ class AE33_device:
             f = open(filename, 'a')
             f.write(line+'\n')
             f.close()
+            
+
+        ## ##### write dataframe to excel file
+        ## make dataFrame from list
+        excel_columns = ['Date', 'Time (Moscow)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6',
+            'BC7', 'BB(%)', 'BCbb', 'BCff', 'Date.1', 'Time (Moscow).1']
+        dataframe_from_buffer = pd.DataFrame(rows_list, columns=excel_columns[:-4])
+        ## add columns
+        dataframe_from_buffer['BCbb'] = dataframe_from_buffer['BB(%)'].astype(float) * dataframe_from_buffer['BC5'].astype(float) / 100
+        dataframe_from_buffer['BCff'] = (100 - dataframe_from_buffer['BB(%)'].astype(float)) / 100 *  dataframe_from_buffer['BC5'].astype(float)
+        dataframe_from_buffer['Date.1'] = dataframe_from_buffer['Date']
+        dataframe_from_buffer['Time (Moscow).1'] = dataframe_from_buffer['Time (Moscow)']
+        print(dataframe_from_buffer.head())
+
+        ##### excel file #####                
+        xlsfilename = yy + '_AE33-S08-01006.xlsx'
+        xlsfilename = self.pathfile + 'table/' + xlsfilename
+        self.xlsfilename = xlsfilename
+        ## read or cleate datafame
+        xlsdata = self.read_dataframe_from_excel_file(xlsfilename)
+        print(xlsdata.head())
+        if xlsdata.shape[0]:
+            dropset = ['Date', 'Time (Moscow)']
+            xlsdata = xlsdata.append(dataframe_from_buffer, ignore_index=True).drop_duplicates(subset=dropset, keep='last')
+            #print("Append:", xlsdata)
+            xlsdata.set_index('Date').to_excel(xlsfilename, engine='openpyxl')
+        else:
+            print("New data:")
+            dataframe_from_buffer.set_index('Date').to_excel(xlsfilename, engine='openpyxl')
+            #dataframe_from_buffer.to_excel(xlsfilename, engine='openpyxl')
+
+
+    def read_dataframe_from_excel_file(self, xlsfilename):
+        columns = ['Date', 'Time (Moscow)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6',
+            'BC7', 'BB(%)', 'BCbb', 'BCff', 'Date.1', 'Time (Moscow).1']
+        try:
+            ## read excel file to dataframe
+            ## need to make "pip install openpyxl==3.0.9" if there are problems with excel file reading
+            datum = pd.read_excel(xlsfilename)
+            print(xlsfilename, "read")
+        except:
+            # create excel 
+            datum = pd.DataFrame(columns=columns)
+            print("No file", xlsfilename)
+            
+        return datum
+
+
+    def plot_from_excel_file(self, xlsfilename):
+        try:
+            ## read excel file to dataframe
+            ## need to make "pip install openpyxl==3.0.9" if there are problems with excel file reading
+            datum = pd.read_excel(xlsfilename)
+        except:
+            print("Error! No excel data file:", xlsfilename)
+            return
+
+        fig = plt.figure(figsize=(14, 5))
+        plt.plot(datum["BCff"][-2880:], 'k', label='BCff')
+        plt.plot(datum["BCbb"][-2880:], 'orange', label='BCbb')
+        plt.legend()
+        plt.grid()
+        plt.savefig('Moscow_bb.png', bbox_inches='tight')
