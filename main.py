@@ -25,17 +25,20 @@ print(device.MAXID)
 device.connect()
 device.request('HELLO',0,0)
 #device.request('?',0,0)  #- не работает
-#device.request('MAXID DATA',0,0)  #- не работает
+device.request('MAXID DATA',0,0)  #- не работает
 #x = input()
 
-start = device.MAXID-10
+delay = 100
+start = device.MAXID - delay
 fin = device.MAXID
 
 #device.request('FETCH DATA',start,fin)  #-  не работает, перевести байты в стринги
 
-device.request('$AE33:D4',0,0)  #-  то же самое
+device.request('$AE33:D'+str(delay),0,0)  #-  то же самое
 
 device.request('CLOSE',0,0)
 device.unconnect()
+
+device.plot_from_excel_file(device.xlsfilename)
 device.write_path_file()
 
