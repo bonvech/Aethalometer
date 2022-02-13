@@ -73,7 +73,9 @@ class AE33_device:
                 os.system("mkdir " + path)
                 path = self.pathfile + '\\table\\'
                 os.system("mkdir " + path)
-    # \todo ПОПРАВИТЬ в конфигурацилонном файле СЛЕШИ В ИМЕНИ ДИРЕКТОРИИ  !!!   для ВИНДА
+                path = self.pathfile + '\\tableW\\'
+                os.system("mkdir " + path)
+    #    # \todo ПОПРАВИТЬ в конфигурацилонном файле СЛЕШИ В ИМЕНИ ДИРЕКТОРИИ  !!!   для ВИНДА
 
 
     def write_path_file(self):
@@ -147,13 +149,13 @@ class AE33_device:
         ## --- read data ---
         time.sleep(1)
         attempts = 0
-        buf = self.sock.recv(2000000)
-        print('qq,  buf(bytes)=',len(buf))
+        buf = self.sock.recv(200000)
+        print('qq,  buf(bytes)=',len(buf),buf)
         #print(buf)
 
         buff2 = buf.decode("UTF-8")
         buff2 = buff2.split("\r\nAE33>")
-        #print('qq,  buff2=',len(buff2),buff2)
+        print('qq2,  buff2=',len(buff2),buff2)
 
         #self.buff = buf.decode("UTF-8")
         if "HELLO" in command:
@@ -161,7 +163,7 @@ class AE33_device:
         else:
             self.buff = buff2[0]
 
-        #print('qq,  self.buff=',len(self.buff))
+        print('qq3,  self.buff=',len(self.buff))
         #print(self.buff)
         #self.buff = self.buff.split("AE33>")
         #print(self.buff)
@@ -200,37 +202,181 @@ class AE33_device:
         if '?' in command:
             self.info = self.buff
         if "FETCH" in command:
-            self.parse_raw_data()
+            i=0
+            while(i<(len(buff2)-1)):
+                print('ii=',i)
+                self.buff = buff2[i]
+                self.parse_raw_data()
+                i=i+1
         if "AE33" in command:
             if "AE33:D":
                 self.parse_format_D_data()            
+            if "AE33:W":
+                self.parse_format_W_data()            
         return 0
 
 
     def parse_raw_data(self):
+        print('raw data:  ')
         if len(self.buff) < 10:
             return
-        #self.buff = self.buff.split("AE33>")
+        self.buff = self.buff.replace("AE33>","")
         print(self.buff)
-        for line in self.buff:
-            if len(line) < 50:
-                continue
-            print(line)
-            mm, dd, yy = line.split("|")[2][:10].split('/')
-            if mm != self.mm or yy != self.yy:
-                filename = '_'.join((yy, mm)) + '_AE33-S08-01006.raw'
-                filename = self.pathfile +'\\raw\\' + filename
-                print(filename)
-                if self.file_raw:
-                    self.file_raw.close()
-                self.file_raw = open(filename, "a")
-            self.file_raw.write(line)
-            self.file_raw.write('\n')
+        
+##        for line in self.buff:
+##          #  print('line = ',line)
+##            #if len(line) < 50:
+##             #   continue
+##            print('line = ',line)
+##            mm, dd, yy = line.split("|")[2][:10].split('/')
+##            #mm, dd, yy = self.buff.split("|")[2][:10].split('/')
+##            print('m, dd, yy = ',mm,dd,yy)
+##            if mm != self.mm or yy != self.yy:
+##                filename = '_'.join((yy, mm)) + '_AE33-S08-01006.raw'
+##                filename = self.pathfile +'\\raw\\' + filename
+##                print(filename)
+##                if self.file_raw:
+##                    self.file_raw.close()
+##                self.file_raw = open(filename, "a")
+##            self.file_raw.write(self.buff+'\n')
+##            #self.file_raw.write('\n')
+
+
+        #mm, dd, yy = line.split("|")[2][:10].split('/')
+        mm, dd, yy = self.buff.split("|")[2][:10].split('/')
+        print('m, dd, yy = ',mm,dd,yy)
+        if mm != self.mm or yy != self.yy:
+            filename = '_'.join((yy, mm)) + '_AE33-S08-01006.raw'
+            filename = self.pathfile +'\\raw\\' + filename
+            print(filename)
+            if self.file_raw:
+                self.file_raw.close()
+            self.file_raw = open(filename, "a")
+        self.file_raw.write(self.buff+'\n')
+            #self.file_raw.write('\n')
+
             
         self.file_raw.flush()
         self.mm = mm
         self.yy = yy
 
+
+    def parse_format_W_data(self):
+        ## main
+        print('qqqqqqqqqqq')
+        if len(self.buff) < 10:
+            return
+        #self.buff = self.buff.split("AE33>")
+        if 'ix' in os.name:
+            self.buff = self.buff.split("\n")  ## for Linux
+        else:
+            self.buff = self.buff.split("\r\n") ## for Windows
+
+        lastmm, lastyy = '0', '0'
+        filename = ''
+        lastline = ''
+        need_check = True
+        dateformat = "%Y/%m/%d %H:%M:%S"
+        #print('lines:')
+        #print(self.buff)
+
+        ## for excel data
+        header = self.file_header[self.file_header.find("Date"):].split("; ")
+        columns = ['Date(yyyy/MM/dd)', 'Time(hh:mm:ss)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6', 'BC7', 'BB(%)']
+        colnums = [header.index(x) for x in columns]      
+        rows_list = []
+        
+        for line in self.buff[::-1]:
+            #print('line:   ',line)
+            yy, mm, _ = line.split()[0].split('/')
+            #print(yy, mm)
+
+            # for first line or new file
+            if mm != lastmm or yy != lastyy:
+                ##### ddat file 
+                filename = '_'.join((yy, mm)) + '_AE33-S08-01006.wdat'
+                filename = self.pathfile +'\wdat\\' + filename
+                print(filename,mm,yy,lastmm,lastyy)
+                try:
+                    ## ddat file exists
+                    f = open(filename, 'r')
+                    lastline = f.readlines()[-1].split()
+                    #print(lastline)
+                    f.close()
+                    print('3')
+                    lasttime = lastline[0] + ' ' + lastline[1]
+                    print('1  ',lasttime)
+                    lasttime = datetime.strptime(lasttime, dateformat)
+                    print('4',lastmm,lastyy,mm,yy)
+                    need_check = True
+                except:
+                    ## no file
+                    print('NOT FILE', filename)
+                    f = open(filename, 'a')        
+                    f.write(self.file_header)
+                    f.close()
+                    lastline = []
+                    need_check = False 
+                lastmm = mm
+                lastyy = yy
+              
+            ## add line data to dataframe 
+            line_to_dataframe = [line.split()[i] for i in colnums]
+            #print("line_to_dataframe:>",line_to_dataframe)
+            line_to_dataframe = line_to_dataframe[:2]\
+                                + [int(x) for x in line_to_dataframe[2:-1]]\
+                                + [float(line_to_dataframe[-1])]
+            rows_list.append(line_to_dataframe)
+            #print(rows_list)
+               
+
+            ## check line to be added to datafile
+            if need_check: # and len(lastline):
+                #print(line)
+                nowtime  = line.split()[0] + ' ' + line.split()[1]
+                #print(nowtime)
+                nowtime  = datetime.strptime(nowtime,  dateformat)
+                print(nowtime - lasttime)
+                ## if line was printed earlier
+                if nowtime <= lasttime:
+                    continue
+
+            need_check = False
+
+            ## write to file
+            f = open(filename, 'a')
+            f.write(line+'\n')
+            f.close()
+            
+
+##        ## ##### write dataframe to excel file
+##        ## make dataFrame from list
+##        excel_columns = ['Date', 'Time (Moscow)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6',
+##            'BC7', 'BB(%)', 'BCbb', 'BCff', 'Date.1', 'Time (Moscow).1']
+##        dataframe_from_buffer = pd.DataFrame(rows_list, columns=excel_columns[:-4])
+##        ## add columns
+##        dataframe_from_buffer['BCbb'] = dataframe_from_buffer['BB(%)'].astype(float) * dataframe_from_buffer['BC5'].astype(float) / 100
+##        dataframe_from_buffer['BCff'] = (100 - dataframe_from_buffer['BB(%)'].astype(float)) / 100 *  dataframe_from_buffer['BC5'].astype(float)
+##        dataframe_from_buffer['Date.1'] = dataframe_from_buffer['Date']
+##        dataframe_from_buffer['Time (Moscow).1'] = dataframe_from_buffer['Time (Moscow)']
+##        print(dataframe_from_buffer.head())
+##
+##        ##### excel file #####                
+##        xlsfilename = yy + '_AE33-S08-01006.xlsx'
+##        xlsfilename = self.pathfile + 'tableW/' + xlsfilename
+##        self.xlsfilename = xlsfilename
+##        ## read or cleate datafame
+##        xlsdata = self.read_dataframe_from_excel_file(xlsfilename)
+##        print(xlsdata.head())
+##        if xlsdata.shape[0]:
+##            dropset = ['Date', 'Time (Moscow)']
+##            xlsdata = xlsdata.append(dataframe_from_buffer, ignore_index=True).drop_duplicates(subset=dropset, keep='last')
+##            #print("Append:", xlsdata)
+##            xlsdata.set_index('Date').to_excel(xlsfilename, engine='openpyxl')
+##        else:
+##            print("New data:")
+##            dataframe_from_buffer.set_index('Date').to_excel(xlsfilename, engine='openpyxl')
+##            #dataframe_from_buffer.to_excel(xlsfilename, engine='openpyxl')
 
     def parse_format_D_data(self):
         ## main
