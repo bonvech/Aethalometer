@@ -243,7 +243,8 @@ class AE33_device:
 
 
         #mm, dd, yy = line.split("|")[2][:10].split('/')
-        mm, dd, yy = self.buff.split("|")[2][:10].split('/')
+        #mm, dd, yy = self.buff.split("|")[2][:10].split('/')
+        mm, dd, yy = self.buff.split("|")[2].split(" ")[0].split('/')
         print('m, dd, yy = ',mm,dd,yy)
         if mm != self.mm or yy != self.yy:
             filename = '_'.join((yy, mm)) + '_AE33-S08-01006.raw'
