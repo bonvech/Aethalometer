@@ -36,10 +36,15 @@ class AE33_device:
         self.fill_header()
 
 
+    ############################################################################
+    ############################################################################
     def fill_header(self):
-        self.file_header = "AETHALOMETER\nSerial number = AE33-S08-01006\nApplication version = 1.6.7.0\nNumber of channels = 7\n\nDate(yyyy/MM/dd); Time(hh:mm:ss); Timebase; RefCh1; Sen1Ch1; Sen2Ch1; RefCh2; Sen1Ch2; Sen2Ch2; RefCh3; Sen1Ch3; Sen2Ch3; RefCh4; Sen1Ch4; Sen2Ch4; RefCh5; Sen1Ch5; Sen2Ch5; RefCh6; Sen1Ch6; Sen2Ch6; RefCh7; Sen1Ch7; Sen2Ch7; Flow1; Flow2; FlowC; Pressure(Pa); Temperature(°C); BB(%); ContTemp; SupplyTemp; Status; ContStatus; DetectStatus; LedStatus; ValveStatus; LedTemp; BC11; BC12; BC1; BC21; BC22; BC2; BC31; BC32; BC3; BC41; BC42; BC4; BC51; BC52; BC5; BC61; BC62; BC6; BC71; BC72; BC7; K1; K2; K3; K4; K5; K6; K7; TapeAdvCount;\n\n\n"
+        self.file_header = "AETHALOMETER\nSerial number = AE33-S08-01006\nApplication version = 1.6.7.0\nNumber of channels = 7\n\nDate(yyyy/MM/dd); Time(hh:mm:ss); Timebase; RefCh1; Sen1Ch1; Sen2Ch1; RefCh2; Sen1Ch2; Sen2Ch2; RefCh3; Sen1Ch3; Sen2Ch3; RefCh4; Sen1Ch4; Sen2Ch4; RefCh5; Sen1Ch5; Sen2Ch5; RefCh6; Sen1Ch6; Sen2Ch6; RefCh7; Sen1Ch7; Sen2Ch7; Flow1; Flow2; FlowC; Pressure(Pa); Temperature(°C); BB (%); ContTemp; SupplyTemp; Status; ContStatus; DetectStatus; LedStatus; ValveStatus; LedTemp; BC11; BC12; BC1; BC21; BC22; BC2; BC31; BC32; BC3; BC41; BC42; BC4; BC51; BC52; BC5; BC61; BC62; BC6; BC71; BC72; BC7; K1; K2; K3; K4; K5; K6; K7; TapeAdvCount;\n\n\n"
 
 
+    ############################################################################
+    ## read "PATHFILES.CNF"
+    ############################################################################
     def read_path_file(self):
         # check file
         #print("read file")
@@ -78,6 +83,8 @@ class AE33_device:
     #    # \todo ПОПРАВИТЬ в конфигурацилонном файле СЛЕШИ В ИМЕНИ ДИРЕКТОРИИ  !!!   для ВИНДА
 
 
+    ############################################################################
+    ############################################################################
     def write_path_file(self):
         f = open("PATHFILES.CNF.bak", 'w')
         f.write("#\n")
@@ -101,6 +108,8 @@ class AE33_device:
         f.close()
 
 
+    ############################################################################
+    ############################################################################
     def print_params(self):
         print("RUN = ", self.run_mode)
         print("IP = ", self.IPname)
@@ -109,6 +118,8 @@ class AE33_device:
         print("MINID = ", self.MINID)
 
 
+    ############################################################################
+    ############################################################################
     def connect(self):
         #if self.active == -1:
         #    return -1
@@ -122,11 +133,15 @@ class AE33_device:
         ## \todo проверить, что связь установлена
 
 
+    ############################################################################
+    ############################################################################
     def unconnect(self):
         ##  socket.shutdown(self.sock, SHUT_RD|SHUT_WR)
         self.sock.close()
 
 
+    ############################################################################
+    ############################################################################
     def request(self, command, start, stop):
         if command == 'FETCH DATA':
             command += ' ' + str(start) + ' ' + str(stop)
@@ -216,6 +231,8 @@ class AE33_device:
         return 0
 
 
+    ############################################################################
+    ############################################################################
     def parse_raw_data(self):
         print('raw data:  ')
         if len(self.buff) < 10:
@@ -242,7 +259,6 @@ class AE33_device:
 ##            #self.file_raw.write('\n')
 
 
-        #mm, dd, yy = line.split("|")[2][:10].split('/')
         #mm, dd, yy = self.buff.split("|")[2][:10].split('/')
         mm, dd, yy = self.buff.split("|")[2].split(" ")[0].split('/')
         print('m, dd, yy = ',mm,dd,yy)
@@ -262,6 +278,8 @@ class AE33_device:
         self.yy = yy
 
 
+    ############################################################################
+    ############################################################################
     def parse_format_W_data(self):
         ## main
         print('qqqqqqqqqqq')
@@ -283,7 +301,9 @@ class AE33_device:
 
         ## for excel data
         header = self.file_header[self.file_header.find("Date"):].split("; ")
-        columns = ['Date(yyyy/MM/dd)', 'Time(hh:mm:ss)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6', 'BC7', 'BB(%)']
+        ## column names to write to file
+        columns = ['Date(yyyy/MM/dd)', 'Time(hh:mm:ss)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6', 'BC7', 'BB (%)']
+        ## record numbers of columns to write to file
         colnums = [header.index(x) for x in columns]      
         rows_list = []
         
@@ -311,7 +331,7 @@ class AE33_device:
                     print('4',lastmm,lastyy,mm,yy)
                     need_check = True
                 except:
-                    ## no file
+                    ## no file: put header into file
                     print('NOT FILE', filename)
                     f = open(filename, 'a')        
                     f.write(self.file_header)
@@ -353,11 +373,11 @@ class AE33_device:
 ##        ## ##### write dataframe to excel file
 ##        ## make dataFrame from list
 ##        excel_columns = ['Date', 'Time (Moscow)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6',
-##            'BC7', 'BB(%)', 'BCbb', 'BCff', 'Date.1', 'Time (Moscow).1']
+##            'BC7', 'BB (%)', 'BCbb', 'BCff', 'Date.1', 'Time (Moscow).1']
 ##        dataframe_from_buffer = pd.DataFrame(rows_list, columns=excel_columns[:-4])
 ##        ## add columns
-##        dataframe_from_buffer['BCbb'] = dataframe_from_buffer['BB(%)'].astype(float) * dataframe_from_buffer['BC5'].astype(float) / 100
-##        dataframe_from_buffer['BCff'] = (100 - dataframe_from_buffer['BB(%)'].astype(float)) / 100 *  dataframe_from_buffer['BC5'].astype(float)
+##        dataframe_from_buffer['BCbb'] = dataframe_from_buffer['BB (%)'].astype(float) * dataframe_from_buffer['BC5'].astype(float) / 100
+##        dataframe_from_buffer['BCff'] = (100 - dataframe_from_buffer['BB (%)'].astype(float)) / 100 *  dataframe_from_buffer['BC5'].astype(float)
 ##        dataframe_from_buffer['Date.1'] = dataframe_from_buffer['Date']
 ##        dataframe_from_buffer['Time (Moscow).1'] = dataframe_from_buffer['Time (Moscow)']
 ##        print(dataframe_from_buffer.head())
@@ -379,6 +399,9 @@ class AE33_device:
 ##            dataframe_from_buffer.set_index('Date').to_excel(xlsfilename, engine='openpyxl')
 ##            #dataframe_from_buffer.to_excel(xlsfilename, engine='openpyxl')
 
+
+    ############################################################################
+    ############################################################################
     def parse_format_D_data(self):
         ## main
         if len(self.buff) < 10:
@@ -399,7 +422,7 @@ class AE33_device:
 
         ## for excel data
         header = self.file_header[self.file_header.find("Date"):].split("; ")
-        columns = ['Date(yyyy/MM/dd)', 'Time(hh:mm:ss)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6', 'BC7', 'BB(%)']
+        columns = ['Date(yyyy/MM/dd)', 'Time(hh:mm:ss)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6', 'BC7', 'BB (%)']
         colnums = [header.index(x) for x in columns]      
         rows_list = []
         
@@ -496,6 +519,8 @@ class AE33_device:
             #dataframe_from_buffer.to_excel(xlsfilename, engine='openpyxl')
 
 
+    ############################################################################
+    ############################################################################
     def read_dataframe_from_excel_file(self, xlsfilename):
         columns = ['Date', 'Time (Moscow)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6',
             'BC7', 'BB(%)', 'BCbb', 'BCff', 'Date.1', 'Time (Moscow).1']
@@ -512,6 +537,8 @@ class AE33_device:
         return datum
 
 
+    ############################################################################
+    ############################################################################
     def plot_from_excel_file(self, xlsfilename):
         try:
             ## read excel file to dataframe
