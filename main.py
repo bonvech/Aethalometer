@@ -1,17 +1,10 @@
-
-
 from AE33_device import AE33_device
-#import socket
-#import sys
-#import socket
-#import time
-#import os
+from plot_figures import *
 
-#import AE33_device
+
 
 #sock1 = socket.socket()
 #sock1.connect(("192.168.1.98", 3000)) 
-
 
 
 device = AE33_device()
@@ -42,3 +35,9 @@ device.unconnect()
 device.plot_from_excel_file(device.xlsfilename)
 device.write_path_file()
 
+
+path_to_figures = device.path + "graphs/"
+# create one figure with four graphs
+plot_four_figures_from_excel(device.xlsfilename, path_to_figures, )
+# create four figures
+plot_four_figures_from_excel(device.xlsfilename, path_to_figures, 4)

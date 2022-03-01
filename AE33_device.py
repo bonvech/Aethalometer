@@ -80,6 +80,8 @@ class AE33_device:
                 os.system("mkdir " + path)
                 path = self.pathfile + '\\tableW\\'
                 os.system("mkdir " + path)
+                path = self.pathfile + '\\graphs\\'
+                os.system("mkdir " + path)
     #    # \todo ПОПРАВИТЬ в конфигурацилонном файле СЛЕШИ В ИМЕНИ ДИРЕКТОРИИ  !!!   для ВИНДА
 
 
