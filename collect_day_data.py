@@ -116,6 +116,39 @@ def write_dataframe_to_excel_file(dataframe_from_buffer, ae_name):
 
 
 
+def read_every_day_files(dirname):
+    # create пустой датафрейм
+    params = xlscolumns
+    data = pd.DataFrame(columns=params)
+
+    # перебрать все файлы и считать из них
+    year = 2022
+    for month in ['02', '03']:
+        for day in range(1, 32):
+            filename = dirname + 'AE33_' + ae_name + '_' \
+                    + f"{year}{month}{day:02d}.dat" 
+
+            ## check file exists
+            try:
+                os.stat(filename)
+                print(filename, end=' ')
+            except:
+                #print("No ", filename)
+                continue
+
+            ## check numbers in line if != 65 - print error
+            lens = set(len(line.split()) for line in open(filename).readlines()[8:])
+            if len(lens) > 1:
+                print('has line with different numbers:', *lens)
+                #continue
+
+            df = read_ddat_file(filename)
+            print("df: ", df.shape)
+            data = pd.concat([data, df], ignore_index=True)
+    return data
+
+
+
 ### Read every day files AE33
 ### read files "*.dat" from device
 ###
@@ -127,39 +160,7 @@ if not os.path.isdir(dirname):
     print("No directory to read data exists: ", dirname)
     exit()
 
-
-# create пустой датафрейм
-params = xlscolumns
-data = pd.DataFrame(columns=params)
-
-# перебрать все файлы и считать из них
-year = 2022
-for month in ['02', '03']:
-    for day in range(1, 32):
-        filename = dirname + 'AE33_' + ae_name + '_' \
-                 + f"{year}{month}{day:02d}.dat" 
-
-        ## check file exists
-        try:
-            os.stat(filename)
-            print(filename, end=' ')
-        except:
-            #print("No ", filename)
-            continue
-
-        ## check numbers in line if != 65 - print error
-        lens = set(len(line.split()) for line in open(filename).readlines()[8:])
-        if len(lens) > 1:
-            print('has line with different numbers:', *lens)
-            #continue
-
-        df = read_ddat_file(filename)
-        print("df: ", df.shape)
-        data = pd.concat([data, df], ignore_index=True)
-
-
-## rename columns
-#data = data.rename(columns={"Date(yyyy/MM/dd)": "Date", "Time(hh:mm:ss)": "Time (Moscow)"})
+data = read_every_day_files(dirname)
 print("data: ", data.shape)
 write_dataframe_to_excel_file(data, ae_name)
 #x = input("Press ENTER for finish")
