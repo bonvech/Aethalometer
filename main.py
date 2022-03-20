@@ -12,7 +12,7 @@ device = AE33_device()
 device.read_path_file()
 device.print_params()
 
-device.MAXID = device. MINID
+device.MAXID = device.MINID
 print(device.MAXID)
 
 device.connect()
@@ -26,9 +26,7 @@ start = device.MAXID - delay
 fin = device.MAXID
 
 #device.request('FETCH DATA',start,fin)  #-  не работает, перевести байты в стринги
-
 device.request('$AE33:D'+str(delay),0,0)  #-  то же самое
-
 device.request('CLOSE',0,0)
 device.unconnect()
 

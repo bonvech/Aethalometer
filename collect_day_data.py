@@ -11,12 +11,14 @@ import os
 xlscolumns = ['Datetime', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6', 'BC7', 'BB(%)']
 
 
+## +
 def select_year_month(datastring):
     return "_".join([x for x in datastring.split()[0].split('.')[2:0:-1]])
     #return "_".join([x for x in datastring.split()[0].split('/')[:2]])
     #return datastring.split('/')[0] + '_' + datastring.split('/')[1]
 
 
+## +
 ## ---- open ddat file ----
 def read_ddat_file(filename):
     head = 'Date(yyyy/MM/dd); Time(hh:mm:ss); Timebase; RefCh1; Sen1Ch1; Sen2Ch1; RefCh2; Sen1Ch2; Sen2Ch2; RefCh3; Sen1Ch3; Sen2Ch3; RefCh4; Sen1Ch4; Sen2Ch4; RefCh5; Sen1Ch5; Sen2Ch5; RefCh6; Sen1Ch6; Sen2Ch6; RefCh7; Sen1Ch7; Sen2Ch7; Flow1; Flow2; FlowC; Pressure(Pa); Temperature(�C); BB(%); ContTemp; SupplyTemp; Status; ContStatus; DetectStatus; LedStatus; ValveStatus; LedTemp; BC11; BC12; BC1; BC21; BC22; BC2; BC31; BC32; BC3; BC41; BC42; BC4; BC51; BC52; BC5; BC61; BC62; BC6; BC71; BC72; BC7; K1; K2; K3; K4; K5; K6; K7; TapeAdvCount; '
@@ -39,6 +41,7 @@ def read_ddat_file(filename):
     return datum[xlscolumns]
 
 
+## +
 def read_dataframe_from_excel_file(xlsfilename):
         #columns = ['Date', 'Time (Moscow)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6',
         #    'BC7', 'BB(%)', 'BCbb', 'BCff', 'Date.1', 'Time (Moscow).1']
@@ -66,19 +69,21 @@ def read_dataframe_from_excel_file(xlsfilename):
 
         return datum
 
-
-def write_dataframe_to_excel_file(dataframe_from_buffer, ae_name):
+### write dataframe to excel file
+### \return - no return
+### +
+def write_dataframe_to_excel_file(dataframe, ae_name):
     """ write dataframe to excel file """
     ## add columns
-    dataframe_from_buffer['BCbb'] = dataframe_from_buffer['BB(%)'].astype(float) \
-                                  * dataframe_from_buffer['BC5'].astype(float) / 100
-    dataframe_from_buffer['BCff'] = (100 - dataframe_from_buffer['BB(%)'].astype(float)) / 100 \
-                                  *  dataframe_from_buffer['BC5'].astype(float)
-    #dataframe_from_buffer['Date.1'] = dataframe_from_buffer['Date']
-    #dataframe_from_buffer['Time (Moscow).1'] = dataframe_from_buffer['Time (Moscow)']
+    dataframe['BCbb'] = dataframe['BB(%)'].astype(float) \
+                      * dataframe['BC5'].astype(float) / 100
+    dataframe['BCff'] = (100 - dataframe['BB(%)'].astype(float)) / 100 \
+                      * dataframe['BC5'].astype(float)
+    #dataframe['Date.1'] = dataframe['Date']
+    #dataframe['Time (Moscow).1'] = dataframe['Time (Moscow)']
 
     #### extract year and month from data
-    year_month = data['Datetime'].apply(select_year_month).unique()
+    year_month = dataframe['Datetime'].apply(select_year_month).unique()
 
     ### prepare directory
     table_dirname = './data/xls/'
@@ -99,7 +104,7 @@ def write_dataframe_to_excel_file(dataframe_from_buffer, ae_name):
         filenamecsv = table_dirname + ym_pattern + '_' + ae_name + ".csv"
 
         ## отфильтровать строки за нужный месяц и год
-        dfsave = dataframe_from_buffer[dataframe_from_buffer['Datetime'].apply(select_year_month) == ym_pattern]
+        dfsave = dataframe[dataframe['Datetime'].apply(select_year_month) == ym_pattern]
         print(ym_pattern, ": ", dfsave.shape)
 
         ##### try to open excel file #####
