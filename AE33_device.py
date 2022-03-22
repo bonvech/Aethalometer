@@ -186,12 +186,12 @@ class AE33_device:
         time.sleep(1)
         attempts = 0
         buf = self.sock.recv(200000)
-        print('qq,  buf(bytes)=',len(buf),buf)
+        #print('qq,  buf(bytes)=',len(buf),buf)
         #print(buf)
 
         buff2 = buf.decode("UTF-8")
         buff2 = buff2.split("\r\nAE33>")
-        print('qq2,  buff2=',len(buff2),buff2)
+        #print('qq2,  buff2=',len(buff2),buff2)
 
         #self.buff = buf.decode("UTF-8")
         if "HELLO" in command:
@@ -199,7 +199,7 @@ class AE33_device:
         else:
             self.buff = buff2[0]
 
-        print('qq3,  self.buff=',len(self.buff))
+        #print('qqqq3,  self.buff=',len(self.buff))
         #print(self.buff)
         #self.buff = self.buff.split("AE33>")
         #print(self.buff)
@@ -247,8 +247,8 @@ class AE33_device:
         if "AE33" in command:
             if "AE33:D":
                 self.parse_format_D_data()
-            if "AE33:W":
-                self.parse_format_W_data()
+        #    if "AE33:W":
+        #        self.parse_format_W_data()
         return 0
 
 
@@ -303,7 +303,7 @@ class AE33_device:
     ############################################################################
     def parse_format_W_data(self):
         ## main
-        print('qqqqqqqqqqq')
+        #print('qqqqqqqqqqq')
         if len(self.buff) < 10:
             return
         #self.buff = self.buff.split("AE33>")
@@ -465,11 +465,11 @@ class AE33_device:
                     lastline = f.readlines()[-1].split()
                     #print(lastline)
                     f.close()
-                    print('3')
+                    #print('3')
                     lasttime = lastline[0] + ' ' + lastline[1]
                     print('1  ',lasttime)
                     lasttime = datetime.strptime(lasttime, dateformat)
-                    print('4',lastmm,lastyy,mm,yy)
+                    #print('4',lastmm,lastyy,mm,yy)
                     need_check = True
                 except:
                     ## no file
@@ -498,7 +498,7 @@ class AE33_device:
                 nowtime  = line.split()[0] + ' ' + line.split()[1]
                 #print(nowtime)
                 nowtime  = datetime.strptime(nowtime,  dateformat)
-                print(nowtime - lasttime)
+                #print(nowtime - lasttime)
                 ## if line was printed earlier
                 if nowtime <= lasttime:
                     continue
@@ -510,8 +510,17 @@ class AE33_device:
             f.write(line+'\n')
             f.close()
 
-        dataframe_from_buffer = pd.DataFrame(rows_list, columns=self.xlscolumns)
-        write_dataframe_to_excel_file(dataframe_from_buffer)
+ 
+        print("make dataframe_from_buffer")
+        dataframe_from_buffer = pd.DataFrame(rows_list, columns=columns)
+        
+        dataframe_from_buffer['Datetime'] = dataframe_from_buffer['Date(yyyy/MM/dd)'].apply(lambda x: ".".join(x.split('/')[::-1])) \
+                + ' ' \
+                + dataframe_from_buffer['Time(hh:mm:ss)'].apply(lambda x: ':'.join(x.split(':')[:2]))
+
+        
+        print("write_dataframe_to_excel_file")
+        self.write_dataframe_to_excel_file(dataframe_from_buffer[self.xlscolumns])
 
 
     ############################################################################
@@ -520,6 +529,7 @@ class AE33_device:
     ### \return - no return
     ###
     def write_dataframe_to_excel_file(self, dataframe):
+        print("write_dataframe_to_excel_file")
         """ write dataframe to excel file """
         ## add columns
         dataframe['BCbb'] = dataframe['BB(%)'].astype(float) \
@@ -532,7 +542,7 @@ class AE33_device:
 
         ### prepare directory
         table_dirname = self.pathfile + 'table/' #'./data/xls/'
-        print(table_dirname)
+        print("table_dirname:", table_dirname)
         if not os.path.isdir(table_dirname):
             os.makedirs(table_dirname)
 
