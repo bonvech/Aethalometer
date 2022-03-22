@@ -19,7 +19,16 @@ def average_by_three(datum):
 ############################################################################
 ##def plot_four_figures_from_excel(self, xlsfilename)
 def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
-
+    #print(path_to_figures)
+    #fmt="%-m/%-d/%Y"
+    fmt = dates.DateFormatter('%d-%2m-%Y\n %H:%M')
+    try:
+        print(datetime.now().strftime(fmt))
+    except:
+        #print('fmt="%m/%d/%Y"')
+        fmt = dates.DateFormatter('%d/%m/%Y\n %H:%M')
+    
+    
     ## read data
     datum = pd.read_excel(xlsfilename)
     ## take two days data
@@ -28,7 +37,6 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     xlims = (x.min(), x.max() + pd.to_timedelta("2:00:00"))
 
     # format graph
-    fmt = dates.DateFormatter('%d-%2m-%Y\n %H:%M')
     plt.rcParams['xtick.labelsize'] = 10
     facecolor = 'white'
 
@@ -79,6 +87,12 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     yy = data["BCff"]
 
     fmt = dates.DateFormatter('%d-%2m-%Y')
+    try:
+        print(datetime.now().strftime(fmt))
+    except:
+        #print('fmt="%m/%d/%Y"')
+        fmt = dates.DateFormatter('%d/%m/%Y')
+
     plt.rcParams['xtick.labelsize'] = 8
 
 
@@ -126,7 +140,11 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     ## save four plots to file
     #fig.savefig('ae33_four_plots.png', facecolor='lightgray') # bbox_inches = 'tight'
     if nfigs == 1:
-        fig.savefig(path_to_figures + 'ae33_bc_four_plots.png', facecolor=facecolor) # bbox_inches = 'tight'
+        print(path_to_figures + 'ae33_bc_four_plots.png')
+        fig.savefig(path_to_figures + 'ae33_bc_four_plots.png', 
+                    facecolor=facecolor,
+                    #datetime_format='%d/%m/%Y'
+                    ) # bbox_inches = 'tight'
 
 
 
@@ -134,7 +152,7 @@ if __name__ == "__main__":
     path_to_figures = "./figures/"
     
     # create one figure with four graphs
-    plot_four_figures_from_excel('2022_AE33-S08-01006.xlsx', path_to_figures, )
+    plot_four_figures_from_excel('./data/table/2022_AE33-S08-01006.xlsx', path_to_figures )
     
     # create four figures
-    plot_four_figures_from_excel('2022_AE33-S08-01006.xlsx', path_to_figures, 4)
+    plot_four_figures_from_excel('./data/table/2022_AE33-S08-01006.xlsx', path_to_figures, 4)
