@@ -1,15 +1,22 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import dates
+import os
 
 
 ############################################################################
 ## make resample by three close measurements
 ############################################################################ 
 def average_by_three(datum):
-    datum['dt'] = datum['Date'] + ' ' + datum['Time (Moscow)']
-    datum.set_index('dt',inplace=True)
-    datum.index = pd.to_datetime(datum.index, format='%Y/%m/%d %H:%M:%S') # format='%m/%d%Y %-I%M%S %p'
+    if 'Date' in datum.columns:
+        datum['dt'] = datum['Date'] + ' ' + datum['Time (Moscow)']
+        datum.set_index('dt', inplace=True)
+        datum.index = pd.to_datetime(datum.index, format='%Y/%m/%d %H:%M:%S') # format='%m/%d%Y %-I%M%S %p'
+    else:
+        datum['dt'] = datum['Datetime']
+        datum.set_index('dt', inplace=True)
+        datum.index = pd.to_datetime(datum.index, format='%d.%m.%Y %H:%M') # format='%m/%d%Y %-I%M%S %p'
+
     return datum.resample("3T").sum().fillna(0).rolling(window=3, min_periods=1).mean()
 
 
@@ -19,7 +26,14 @@ def average_by_three(datum):
 ############################################################################
 ##def plot_four_figures_from_excel(self, xlsfilename)
 def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
+    print(f"Plot  {nfigs}  figures")
+
     #print(path_to_figures)
+    if not os.path.isdir(path_to_figures):
+        os.makedirs(path_to_figures)
+
+
+    ##  check if format is possible
     #fmt="%-m/%-d/%Y"
     fmt = dates.DateFormatter('%d-%2m-%Y\n %H:%M')
     try:
@@ -27,13 +41,16 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     except:
         #print('fmt="%m/%d/%Y"')
         fmt = dates.DateFormatter('%d/%m/%Y\n %H:%M')
-    
-    
+
+
     ## read data
     datum = pd.read_excel(xlsfilename)
     ## take two days data
     data = datum[-2880:]
-    x = (data['Date'].astype('string') + ' ' + data['Time (Moscow)'].astype('string')).map(pd.to_datetime)
+    if 'Date' in data.columns:
+        x = (data['Date'].astype('string') + ' ' + data['Time (Moscow)'].astype('string')).map(pd.to_datetime)
+    else:
+        x = data['Datetime'].astype('string').map(pd.to_datetime)
     xlims = (x.min(), x.max() + pd.to_timedelta("2:00:00"))
 
     # format graph
@@ -69,7 +86,7 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     else:
         fig = plt.figure(figsize=(16, 4))
         ax_2 = fig.add_subplot(1, 1, 1)
-    
+
     ax_2.plot(x, data["BCff"], 'k', label='BCff')
     ax_2.plot(x, data["BCbb"], 'orange', label='BCbb')
     ax_2.xaxis.set_major_formatter(fmt)
@@ -104,7 +121,7 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     else:
         fig = plt.figure(figsize=(8, 4))
         ax_3 = fig.add_subplot(1, 1, 1)
-   
+
     for i in range(7):
         wave = 'BC' + str(i + 1)
         ax_3.plot(data[wave], label=wave)
@@ -150,9 +167,9 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
 
 if __name__ == "__main__":
     path_to_figures = "./figures/"
-    
+
     # create one figure with four graphs
-    plot_four_figures_from_excel('./data/table/2022_AE33-S08-01006.xlsx', path_to_figures )
-    
+    plot_four_figures_from_excel('./data/table/2022_03_AE33-S08-01006.xlsx', path_to_figures )
+
     # create four figures
-    plot_four_figures_from_excel('./data/table/2022_AE33-S08-01006.xlsx', path_to_figures, 4)
+    plot_four_figures_from_excel('./data/table/2022_03_AE33-S08-01006.xlsx', path_to_figures, 4)

@@ -534,7 +534,7 @@ class AE33_device:
                 + dataframe_from_buffer['Time(hh:mm:ss)'].apply(lambda x: ':'.join(x.split(':')[:2]))
 
         ## save fo excel
-        print("write_dataframe_to_excel_file")
+        #print("write_dataframe_to_excel_file")
         self.write_dataframe_to_excel_file(dataframe_from_buffer[self.xlscolumns])
 
 
@@ -547,8 +547,8 @@ class AE33_device:
         print("write_dataframe_to_excel_file")
         """ write dataframe to excel file """
         ## add columns
-        dataframe['BCbb'] = dataframe['BB(%)'].astype(float) \
-                          * dataframe['BC5'].astype(float) / 100
+        dataframe['BCbb'] = dataframe['BB(%)'].astype(float) / 100 \
+                          * dataframe['BC5'].astype(float)
         dataframe['BCff'] = (100 - dataframe['BB(%)'].astype(float)) / 100 \
                           * dataframe['BC5'].astype(float)
 
@@ -564,7 +564,7 @@ class AE33_device:
 
         #### write to excel file
         for ym_pattern in year_month:
-            print(ym_pattern, end=' ')
+            #print(ym_pattern, end=' ')
             filenamexls = table_dirname + ym_pattern + '_' + self.ae_name + ".xlsx"
             filenamecsv = table_dirname + ym_pattern + '_' + self.ae_name + ".csv"
             self.xlsfilename = filenamexls
