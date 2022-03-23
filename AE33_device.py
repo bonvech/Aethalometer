@@ -44,7 +44,7 @@ class AE33_device:
 
         ## --- run functions ---
         #sock = socket.socket()
-        self.fill_header()
+        #self.fill_header()
 
 
     ############################################################################
@@ -52,9 +52,13 @@ class AE33_device:
     def fill_header(self):
         self.head = "Date(yyyy/MM/dd); Time(hh:mm:ss); Timebase; RefCh1; Sen1Ch1; Sen2Ch1; RefCh2; Sen1Ch2; Sen2Ch2; RefCh3; Sen1Ch3; Sen2Ch3; RefCh4; Sen1Ch4; Sen2Ch4; RefCh5; Sen1Ch5; Sen2Ch5; RefCh6; Sen1Ch6; Sen2Ch6; RefCh7; Sen1Ch7; Sen2Ch7; Flow1; Flow2; FlowC; Pressure(Pa); Temperature(°C); BB(%); ContTemp; SupplyTemp; Status; ContStatus; DetectStatus; LedStatus; ValveStatus; LedTemp; BC11; BC12; BC1; BC21; BC22; BC2; BC31; BC32; BC3; BC41; BC42; BC4; BC51; BC52; BC5; BC61; BC62; BC6; BC71; BC72; BC7; K1; K2; K3; K4; K5; K6; K7; TapeAdvCount; "
         #self.ddat_head = self.head.replace("BB(%)", "BB (%)")
+        if self.ae_name == '':
+            print("\n\nERROR! Name of the device is unknown!!!!!\n")
         self.file_header = (
             "AETHALOMETER\n" + 
-            "Serial number = AE33-S08-01006\n" + 
+            "Serial number = " +
+            self.ae_name +  # "AE33-S08-01006" +
+            "\n" + 
             "Application version = 1.6.7.0\nNumber of channels = 7\n\n" + 
             self.head + "\n\n\n")
 
@@ -151,7 +155,7 @@ class AE33_device:
         #sock.connect(('localhost', 3000)) 
         ## \todo проверить, что связь установлена
         ## если нет - написать в лог 
-        ## и написать в канал
+        ## и написать в телеграм канал
 
 
     ############################################################################
@@ -162,72 +166,68 @@ class AE33_device:
 
 
     ############################################################################
+    ### send command to device, read answer and operate with it
+    ### \return 0 - OK
+    ###         1 - command CLOSE
+    ###         2 - error in receive data
     ############################################################################
     def request(self, command, start, stop):
         if command == 'FETCH DATA':
             command += ' ' + str(start) + ' ' + str(stop)
         command += '\r\n'
-        print(command)
+        print(command, end='')
 
         ## --- send command ---
         time.sleep(1)
         ##self.sock.send(bytes(command))
         bytes = self.sock.send(command.encode())
-        print(bytes)
+        print(bytes, end='>   ')
         ## \todo проверить, что все отправилось
         if bytes != len(command):
             print("request: Error in sending data!! ") 
-        print('sent ', bytes, ' to socket')
+        print('sent ', bytes, 'bytes to the socket')
 
         if "CLOSE" in command:
             return 1
 
-        ## --- read data ---
-        time.sleep(1)
+        ## --- 10 attempts to read buffer
         attempts = 0
-        buf = self.sock.recv(200000)
-        #print('qq,  buf(bytes)=',len(buf),buf)
-        #print(buf)
-
-        buff2 = buf.decode("UTF-8")
-        buff2 = buff2.split("\r\nAE33>")
-        #print('qq2,  buff2=',len(buff2),buff2)
-
-        #self.buff = buf.decode("UTF-8")
-        if "HELLO" in command:
-            self.buff = buff2[1]
-        else:
-            self.buff = buff2[0]
-
-        #print('qqqq3,  self.buff=',len(self.buff))
-        #print(self.buff)
-        #self.buff = self.buff.split("AE33>")
-        #print(self.buff)
-
+        buf = ''
         while(len(buf) == 0 and attempts < 10):
-            print('not data,  buf=',len(buf))
             time.sleep(1)
-            buf = self.sock.recv(2000000)
-            print('qq,  buf(bytes)=',len(buf))
-            #print(buf)
-            buff2 = buf.decode("UTF-8")
-            buff2 = buff2.split("\r\nAE33>")
-            #self.buff = buf.decode("UTF-8")
-            if "HELLO" in command:
-                self.buff = buff2[1]
-            else:
-                self.buff = buff2[0]
-            #self.buff = self.buff.split("AE33>")
-            #print(self.buff)
             attempts += 1
+            buf = self.sock.recv(2000000)
+            if len(buf) == 0:
+                print('not data,  buf lenght=', len(buf), ' attempt=', attempts)
+            else:
+                print('qq, read buf(bytes)=',len(buf))
+                #print(buf)
+
         if attempts >= 10:
             print("request: Error in receive")
             self.sock.unconnect()
             return 2
 
+        ## --- parse buffer
+        buff2 = buf.decode("UTF-8")
+        buff2 = buff2.split("\r\nAE33>")
+        #print('qq2,  buff2=', len(buff2), buff2)
+
+        self.buff = buff2[0]
+        #if "HELLO" in command:
+            #self.buff = buff2[1]
+        #else:
+            #self.buff = buff2[0]
+
+        #print('qqqq3,  self.buff=', len(self.buff))
+        #print(self.buff)
+        #self.buff = self.buff.split("AE33>")
+        #print(self.buff)
+
+        ### --- operate with command
+        if "HELLO" in command:
+            extract_device_name()
         if "MAXID" in command:
-            #self.buff = self.buff.split("AE33>")
-            #print(self.buff)
             self.MAXID = int(self.buff)
             print(self.MAXID)
         if "MINID" in command:
@@ -238,18 +238,28 @@ class AE33_device:
         if '?' in command:
             self.info = self.buff
         if "FETCH" in command:
-            i=0
-            while(i<(len(buff2)-1)):
+            i = 0
+            while(i < (len(buff2) - 1)):
                 print('ii=',i)
                 self.buff = buff2[i]
                 self.parse_raw_data()
-                i=i+1
+                i += 1
         if "AE33" in command:
             if "AE33:D":
                 self.parse_format_D_data()
         #    if "AE33:W":
         #        self.parse_format_W_data()
+
         return 0
+
+
+    ############################################################################
+    ############################################################################
+    def extract_device_name():
+            buff = self.buff.split("\r\n")
+            self.ae_name = [x.split()[2] for x in buff if "serialnumb" in x][0]
+            print(f'Device name: {self.ae_name}')
+
 
 
     ############################################################################
@@ -429,7 +439,7 @@ class AE33_device:
             return
         #self.buff = self.buff.split("AE33>")
         if 'ix' in os.name:
-            self.buff = self.buff.split("\n")  ## for Linux
+            self.buff = self.buff.split("\n")   ## for Linux
         else:
             self.buff = self.buff.split("\r\n") ## for Windows
 
@@ -441,7 +451,9 @@ class AE33_device:
         #print('lines:')
         #print(self.buff)
 
-        ## for excel data
+        ## --- for excel data
+        if self.file_header == '':
+            self.fill_header()
         header = self.file_header[self.file_header.find("Date"):].split("; ")
         #columns = ['Date(yyyy/MM/dd)', 'Time(hh:mm:ss)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6', 'BC7', 'BB (%)']
         columns = ['Date(yyyy/MM/dd)', 'Time(hh:mm:ss)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6', 'BC7', 'BB(%)']
@@ -453,10 +465,11 @@ class AE33_device:
             yy, mm, _ = line.split()[0].split('/')
             #print(yy, mm)
 
-            # for first line or new file
+            ## --- for first line or new file
             if mm != lastmm or yy != lastyy:
-                ##### ddat file 
-                filename = '_'.join((yy, mm)) + '_AE33-S08-01006.ddat'
+                ## -- ddat file 
+                #filename = '_'.join((yy, mm)) + "_" + 'AE33-S08-01006.ddat'
+                filename = '_'.join((yy, mm)) + "_" + self.ae_name + '.ddat'
                 filename = self.pathfile +'\ddat\\' + filename
                 print(filename,mm,yy,lastmm,lastyy)
                 try:
@@ -513,12 +526,13 @@ class AE33_device:
  
         print("make dataframe_from_buffer")
         dataframe_from_buffer = pd.DataFrame(rows_list, columns=columns)
-        
+
+        ## reformat datetime string
         dataframe_from_buffer['Datetime'] = dataframe_from_buffer['Date(yyyy/MM/dd)'].apply(lambda x: ".".join(x.split('/')[::-1])) \
                 + ' ' \
                 + dataframe_from_buffer['Time(hh:mm:ss)'].apply(lambda x: ':'.join(x.split(':')[:2]))
 
-        
+        ## save fo excel
         print("write_dataframe_to_excel_file")
         self.write_dataframe_to_excel_file(dataframe_from_buffer[self.xlscolumns])
 
