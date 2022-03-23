@@ -224,9 +224,10 @@ class AE33_device:
         #self.buff = self.buff.split("AE33>")
         #print(self.buff)
 
+
         ### --- operate with command
         if "HELLO" in command:
-            extract_device_name()
+            self.extract_device_name()
         if "MAXID" in command:
             self.MAXID = int(self.buff)
             print(self.MAXID)
@@ -255,7 +256,7 @@ class AE33_device:
 
     ############################################################################
     ############################################################################
-    def extract_device_name():
+    def extract_device_name(self):
             buff = self.buff.split("\r\n")
             self.ae_name = [x.split()[2] for x in buff if "serialnumb" in x][0]
             print(f'Device name: {self.ae_name}')
