@@ -80,7 +80,7 @@ class AE33_device:
 
         params = [x.replace('\n','') for x in f.readlines() if x[0] != '#']
         f.close()
-        #print(params)
+        print(params)
 
         for param in params:
             if "RUN" in param:
@@ -93,39 +93,48 @@ class AE33_device:
                 self.MAXID = self.MINID
             else:
                 self.pathfile = param
+                print(self.pathfile)
                 if not os.path.isdir(param):
                     os.makedirs(param)
-                #os.system("mkdir " + param)
+#                os.system("mkdir " + param)
 
-                path = self.pathfile + '/raw/'
-                #os.system("mkdir " + path)
-                if not os.path.isdir(param):
-                    os.makedirs(param)
-
-                path = self.pathfile + '/ddat/'
-                #os.system("mkdir " + path)
+                path = self.pathfile + '\\raw\\'
+                #path = self.pathfile + 'raw/'
+                print(path)
+#                os.system("mkdir " + path)
                 if not os.path.isdir(param):
                     os.makedirs(param)
 
-                path = self.pathfile + '/wdat/'
-                #os.system("mkdir " + path)
+                #path = self.pathfile + '/ddat/'
+                path = self.pathfile + '\\ddat\\'
+#                os.system("mkdir " + path)
                 if not os.path.isdir(param):
                     os.makedirs(param)
 
-                path = self.pathfile + '/table/'
+                #path = self.pathfile + '\\wdat\'
+#                path = self.pathfile + '/wdat/'
                 #os.system("mkdir " + path)
+##                if not os.path.isdir(param):
+##                    os.makedirs(param)
+
+                #path = self.pathfile + '/table/'
+                path = self.pathfile + '\\table\\'
+#                os.system("mkdir " + path)
                 if not os.path.isdir(param):
                     os.makedirs(param)
 
-                path = self.pathfile + '/tableW/'
+#                path = self.pathfile + '/tableW/'
+                #path = self.pathfile + '\\tableW\'
                 #os.system("mkdir " + path)
-                if not os.path.isdir(param):
-                    os.makedirs(param)
+##                if not os.path.isdir(param):
+##                    os.makedirs(param)
 
-                path = self.pathfile + '/graphs/'
-                #os.system("mkdir " + path)
-                if not os.path.isdir(param):
-                    os.makedirs(param)
+                #path = self.pathfile + '/graphs/'
+#                path = self.pathfile + '\\graphs\\'
+#                print(path)
+#                os.system("mkdir " + path)
+#                if not os.path.isdir(param):
+#                    os.makedirs(param)
     # \todo ПОПРАВИТЬ в конфигурацилонном файле СЛЕШИ В ИМЕНИ ДИРЕКТОРИИ  !!!   для ВИНДА
 
 
@@ -186,7 +195,7 @@ class AE33_device:
         ## и написать в телеграм канал
         except TimeoutError:
             errcode = 1
-            text = f"TEST Message: Timeout error: AE33 on address {self.IPname} does not responde"
+            text = f"Message: Timeout error: AE33 on address {self.IPname} does not responde"
             print(text)
             bot = telebot.TeleBot(config.token, parse_mode=None)
             bot.send_message(config.channel, text)
@@ -332,7 +341,8 @@ class AE33_device:
         print('m, dd, yy = ',mm,dd,yy)
         if mm != self.mm or yy != self.yy:
             filename = '_'.join((yy, mm)) + '_AE33-S08-01006.raw'
-            filename = self.pathfile +'\\raw\\' + filename
+            #filename = self.pathfile +'\\raw\\' + filename
+            filename = self.pathfile +'/raw/' + filename
             print(filename)
             if self.file_raw:
                 self.file_raw.close()
@@ -508,7 +518,8 @@ class AE33_device:
                 ## -- ddat file 
                 #filename = '_'.join((yy, mm)) + "_" + 'AE33-S08-01006.ddat'
                 filename = '_'.join((yy, mm)) + "_" + self.ae_name + '.ddat'
-                filename = self.pathfile +'\ddat\\' + filename
+                #filename = self.pathfile +'\ddat\\' + filename
+                filename = self.pathfile +'/ddat/' + filename
                 print(filename,mm,yy,lastmm,lastyy)
                 try:
                     ## ddat file exists

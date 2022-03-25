@@ -1,6 +1,6 @@
 echo
-rem cd C:\Users\Olga\Desktop\AA\Aethalometer-main\Aethalometer-main\
+rem cd C:\Users\Olga\Desktop\AA\AE33-S09\
 python main.py
 rem python plot_figures.py
-pause
-pause
+rem pause
+rem pause
