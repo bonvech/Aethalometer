@@ -96,18 +96,18 @@ class AE33_device:
                 print(self.pathfile)
                 if not os.path.isdir(param):
                     os.makedirs(param)
-#                os.system("mkdir " + param)
+                os.system("mkdir " + param)
 
                 path = self.pathfile + '\\raw\\'
                 #path = self.pathfile + 'raw/'
                 print(path)
-#                os.system("mkdir " + path)
+                os.system("mkdir " + path)
                 if not os.path.isdir(param):
                     os.makedirs(param)
 
                 #path = self.pathfile + '/ddat/'
                 path = self.pathfile + '\\ddat\\'
-#                os.system("mkdir " + path)
+                os.system("mkdir " + path)
                 if not os.path.isdir(param):
                     os.makedirs(param)
 
@@ -119,7 +119,7 @@ class AE33_device:
 
                 #path = self.pathfile + '/table/'
                 path = self.pathfile + '\\table\\'
-#                os.system("mkdir " + path)
+                os.system("mkdir " + path)
                 if not os.path.isdir(param):
                     os.makedirs(param)
 
