@@ -15,7 +15,9 @@ device.print_params()
 device.MAXID = device.MINID
 print(device.MAXID)
 
-device.connect()
+if device.connect() == 1:
+    exit("Connect error")
+
 device.request('HELLO',0,0)
 #device.request('?',0,0)  #- не работает
 device.request('MAXID DATA',0,0)  #- не работает

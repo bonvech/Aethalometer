@@ -8,10 +8,13 @@ import sys
 import socket
 import time
 import datetime
-from datetime import datetime
+from   datetime import datetime
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
+# for bot
+import telebot
+import config
 
 
 class AE33_device:
@@ -144,6 +147,7 @@ class AE33_device:
     ############################################################################
     ############################################################################
     def connect(self):
+        errcode = 0
         #if self.active == -1:
         #    return -1
         #socket.socket(family='AF_INET', type='SOCK_STREAM', proto=0, fileno=None)
@@ -151,11 +155,20 @@ class AE33_device:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         #self.sock = socket.socket()
         #sock = socket.socket()
-        self.sock.connect((self.IPname, self.Port))
+        try:
+            self.sock.connect((self.IPname, self.Port))
         #sock.connect(('localhost', 3000)) 
         ## \todo проверить, что связь установлена
         ## если нет - написать в лог 
         ## и написать в телеграм канал
+        except TimeoutError:
+            errcode = 1
+            text = f"TEST Message: Timeout error: AE33 on address {self.IPname} does not responde"
+            print(text)
+            bot = telebot.TeleBot(config.token, parse_mode=None)
+            bot.send_message(config.channel, text)
+
+        return errcode
 
 
     ############################################################################
