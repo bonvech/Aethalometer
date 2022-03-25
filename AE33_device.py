@@ -93,19 +93,39 @@ class AE33_device:
                 self.MAXID = self.MINID
             else:
                 self.pathfile = param
-                os.system("mkdir " + param)
-                path = self.pathfile + '\\raw\\'
-                os.system("mkdir " + path)
-                path = self.pathfile + '\ddat\\'
-                os.system("mkdir " + path)
-                path = self.pathfile + '\wdat\\'
-                os.system("mkdir " + path)
-                path = self.pathfile + '\\table\\'
-                os.system("mkdir " + path)
-                path = self.pathfile + '\\tableW\\'
-                os.system("mkdir " + path)
-                path = self.pathfile + '\\graphs\\'
-                os.system("mkdir " + path)
+                if not os.path.isdir(param):
+                    os.makedirs(param)
+                #os.system("mkdir " + param)
+
+                path = self.pathfile + '/raw/'
+                #os.system("mkdir " + path)
+                if not os.path.isdir(param):
+                    os.makedirs(param)
+
+                path = self.pathfile + '/ddat/'
+                #os.system("mkdir " + path)
+                if not os.path.isdir(param):
+                    os.makedirs(param)
+
+                path = self.pathfile + '/wdat/'
+                #os.system("mkdir " + path)
+                if not os.path.isdir(param):
+                    os.makedirs(param)
+
+                path = self.pathfile + '/table/'
+                #os.system("mkdir " + path)
+                if not os.path.isdir(param):
+                    os.makedirs(param)
+
+                path = self.pathfile + '/tableW/'
+                #os.system("mkdir " + path)
+                if not os.path.isdir(param):
+                    os.makedirs(param)
+
+                path = self.pathfile + '/graphs/'
+                #os.system("mkdir " + path)
+                if not os.path.isdir(param):
+                    os.makedirs(param)
     # \todo ПОПРАВИТЬ в конфигурацилонном файле СЛЕШИ В ИМЕНИ ДИРЕКТОРИИ  !!!   для ВИНДА
 
 
@@ -150,14 +170,17 @@ class AE33_device:
         errcode = 0
         #if self.active == -1:
         #    return -1
+
+        ## --- create socket
         #socket.socket(family='AF_INET', type='SOCK_STREAM', proto=0, fileno=None)
         #self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM | socket.SOCK_NONBLOCK)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         #self.sock = socket.socket()
-        #sock = socket.socket()
+
+        ## --- connect to server
         try:
             self.sock.connect((self.IPname, self.Port))
-        #sock.connect(('localhost', 3000)) 
+            #sock.connect(('localhost', 3000)) 
         ## \todo проверить, что связь установлена
         ## если нет - написать в лог 
         ## и написать в телеграм канал
@@ -451,6 +474,7 @@ class AE33_device:
         ## main
         if len(self.buff) < 10:
             return
+
         #self.buff = self.buff.split("AE33>")
         if 'ix' in os.name:
             self.buff = self.buff.split("\n")   ## for Linux
