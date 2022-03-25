@@ -1,3 +1,0 @@
-# Токен First192SchooBot
-token = '5298582107:AAHv2BC58QQ_LD6HzgZg2gI7QtnQQBng114'
-channel = -1001568121383
