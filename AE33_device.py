@@ -535,12 +535,12 @@ class AE33_device:
                     need_check = True
                 except:
                     ## no file
-                    print('NOT FILE', filename)
+                    print('NOT FILE', filename, "found. New file created.")
                     f = open(filename, 'a')
                     f.write(self.file_header.replace("BB(%)", "BB (%)"))
                     f.close()
                     lastline = []
-                    need_check = False 
+                    need_check = False
                 lastmm = mm
                 lastyy = yy
 
@@ -625,45 +625,19 @@ class AE33_device:
             ## read or cleate datafame
             xlsdata = self.read_dataframe_from_excel_file(filenamexls)
             if xlsdata.shape[0]:
-                #xlsdata.append(dfsave, ignore_index=True).drop_duplicates()
                 dfsave = pd.concat([xlsdata, dfsave], ignore_index=True)\
                         .drop_duplicates(subset=['Datetime'])\
-                        .sort_values(by=['Datetime']) 
+                        .sort_values(by=['Datetime'])
+                if xlsdata.shape[0] == dfsave.shape[0]:
+                    text = f"No new data received from {self.ae_name}"
+                    bot = telebot.TeleBot(config.token, parse_mode=None)
+                    bot.send_message(config.channel, text)
+                    return 1
+
 
             dfsave.set_index('Datetime').to_excel(filenamexls, engine='openpyxl')
             dfsave.set_index('Datetime').to_csv(filenamecsv)
-
-
-
-    #--------------------------------------------------
-        ### ##### write dataframe to excel file
-        ### make dataFrame from list
-        #excel_columns = ['Date', 'Time (Moscow)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6',
-            #'BC7', 'BB(%)', 'BCbb', 'BCff', 'Date.1', 'Time (Moscow).1']
-        #dataframe_from_buffer = pd.DataFrame(rows_list, columns=excel_columns[:-4])
-        ### add columns
-        #dataframe_from_buffer['BCbb'] = dataframe_from_buffer['BB(%)'].astype(float) * dataframe_from_buffer['BC5'].astype(float) / 100
-        #dataframe_from_buffer['BCff'] = (100 - dataframe_from_buffer['BB(%)'].astype(float)) / 100 *  dataframe_from_buffer['BC5'].astype(float)
-        #dataframe_from_buffer['Date.1'] = dataframe_from_buffer['Date']
-        #dataframe_from_buffer['Time (Moscow).1'] = dataframe_from_buffer['Time (Moscow)']
-        #print(dataframe_from_buffer.head())
-
-        ###### excel file #####
-        #xlsfilename = yy + '_AE33-S08-01006.xlsx'
-        #xlsfilename = self.pathfile + 'table/' + xlsfilename
-        #self.xlsfilename = xlsfilename
-        ### read or cleate datafame
-        #xlsdata = self.read_dataframe_from_excel_file(xlsfilename)
-        #print(xlsdata.head())
-        #if xlsdata.shape[0]:
-            #dropset = ['Date', 'Time (Moscow)']
-            #xlsdata = xlsdata.append(dataframe_from_buffer, ignore_index=True).drop_duplicates(subset=dropset, keep='last')
-            ##print("Append:", xlsdata)
-            #xlsdata.set_index('Date').to_excel(xlsfilename, engine='openpyxl')
-        #else:
-            #print("New data:")
-            #dataframe_from_buffer.set_index('Date').to_excel(xlsfilename, engine='openpyxl')
-            ##dataframe_from_buffer.to_excel(xlsfilename, engine='openpyxl')
+            return 0
 
 
     ############################################################################
