@@ -1,6 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib import dates
+from   matplotlib import dates
 import os
 
 
@@ -56,6 +56,8 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     # format graph
     plt.rcParams['xtick.labelsize'] = 10
     facecolor = 'white'
+    title = xlsfilename.split('/')[-1].split('/')[-1].split('.')[-2].split('_')[-1]
+    #title = ae_name
 
 
     ##########################
@@ -73,6 +75,7 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     ax_1.xaxis.set_major_formatter(fmt)
     ax_1.set_xlim(xlims)
     ax_1.legend()
+    ax_1.set_title(title, loc='right')
     ax_1.grid()
     ## save to file "ae33_bc_waves.png"
     if nfigs != 1:
@@ -95,6 +98,7 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     ax_2.grid()
     ## save to file "ae33_bc.png"
     if nfigs != 1:
+        ax_2.set_title(title, loc='right')
         fig.savefig(path_to_figures + 'ae33_bc_day.png', facecolor=facecolor) 
 
 
@@ -131,6 +135,7 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     ax_3.grid()
     ## save to file "ae33_bc_waves_week.png"
     if nfigs != 1:
+        ax_3.set_title(title, loc='right')
         fig.savefig(path_to_figures + 'ae33_bc_waves_week.png', facecolor=facecolor) 
 
 
@@ -150,8 +155,10 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     #ax_4.set_xlim(xx.min(), xx.max())
     ax_4.legend()
     ax_4.grid()
-    ## save to file "ae33_bc_week.png"
+
+    ## save one figure to file "ae33_bc_week.png"
     if nfigs != 1:
+        ax_4.set_title(title, loc='right')
         fig.savefig(path_to_figures + 'ae33_bc_week.png', facecolor=facecolor) 
 
     ## save four plots to file
@@ -161,15 +168,20 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
         fig.savefig(path_to_figures + 'ae33_bc_four_plots.png', 
                     facecolor=facecolor,
                     #datetime_format='%d/%m/%Y'
-                    ) # bbox_inches = 'tight'
+                    #, bbox_inches = 'tight'
+                    )
 
 
 
+## --------------------------------------------------------------------------------------------------
 if __name__ == "__main__":
     path_to_figures = "./figures/"
+    ae_name = 'AE33-S09-01249'
 
     # create one figure with four graphs
-    plot_four_figures_from_excel('./data/table/2022_03_AE33-S08-01006.xlsx', path_to_figures )
+    #plot_four_figures_from_excel('./data/table/2022_03_AE33-S08-01006.xlsx', path_to_figures )
+    plot_four_figures_from_excel('./data/table/2022_03_' + ae_name + '.xlsx', path_to_figures )
 
     # create four figures
-    plot_four_figures_from_excel('./data/table/2022_03_AE33-S08-01006.xlsx', path_to_figures, 4)
+    #plot_four_figures_from_excel('./data/table/2022_03_AE33-S08-01006.xlsx', path_to_figures, 4)
+    plot_four_figures_from_excel('./data/table/2022_03_' + ae_name + '.xlsx', path_to_figures, 4 )
