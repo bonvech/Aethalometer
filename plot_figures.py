@@ -48,9 +48,12 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     ## take two days data
     data = datum[-2880:]
     if 'Date' in data.columns:
-        x = (data['Date'].astype('string') + ' ' + data['Time (Moscow)'].astype('string')).map(pd.to_datetime)
+        x = (data['Date'].astype('string') + ' ' + data['Time (Moscow)'].astype('string'))
+        x = pd.to_datetime(x, format='%Y/%m/%d %H:%M:%S')
     else:
-        x = data['Datetime'].astype('string').map(pd.to_datetime)
+        x = data['Datetime'].astype('string')
+        x = pd.to_datetime(x, format='%d.%m.%Y %H:%M')
+    #print(x)
     xlims = (x.min(), x.max() + pd.to_timedelta("2:00:00"))
 
     # format graph
@@ -180,8 +183,8 @@ if __name__ == "__main__":
 
     # create one figure with four graphs
     #plot_four_figures_from_excel('./data/table/2022_03_AE33-S08-01006.xlsx', path_to_figures )
-    plot_four_figures_from_excel('./data/table/2022_03_' + ae_name + '.xlsx', path_to_figures )
+    plot_four_figures_from_excel('./data/table/2022_04_' + ae_name + '.xlsx', path_to_figures )
 
     # create four figures
     #plot_four_figures_from_excel('./data/table/2022_03_AE33-S08-01006.xlsx', path_to_figures, 4)
-    plot_four_figures_from_excel('./data/table/2022_03_' + ae_name + '.xlsx', path_to_figures, 4 )
+    plot_four_figures_from_excel('./data/table/2022_04_' + ae_name + '.xlsx', path_to_figures, 4 )
