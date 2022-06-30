@@ -80,7 +80,7 @@ class AE33_device:
 
         params = [x.replace('\n','') for x in f.readlines() if x[0] != '#']
         f.close()
-        print(params)
+        #print(params)
 
         for param in params:
             if "RUN" in param:
@@ -93,14 +93,14 @@ class AE33_device:
                 self.MAXID = self.MINID
             else:
                 self.pathfile = param
-                print(self.pathfile)
+                #print(self.pathfile)
                 if not os.path.isdir(param):
                     os.makedirs(param)
                 os.system("mkdir " + param)
 
                 path = self.pathfile + '\\raw\\'
                 #path = self.pathfile + 'raw/'
-                print(path)
+                #print(path)
                 os.system("mkdir " + path)
                 if not os.path.isdir(param):
                     os.makedirs(param)

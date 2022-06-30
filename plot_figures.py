@@ -151,7 +151,7 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     data = average_by_three(datum)
     ## get only last two weeks
     xmin = data.index.max() - pd.to_timedelta("336:00:00")
-    data = data[data.index > xmin]
+    data = data[data.index >= xmin]
 
     ## set new axis label format
     fmt = dates.DateFormatter('%d-%2m-%Y')
@@ -215,14 +215,13 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
 
     #####################################
     ## save four plots to file
-    #fig.savefig('ae33_four_plots.png', facecolor='lightgray') # bbox_inches = 'tight'
     if nfigs == 1:
-        print(path_to_figures + 'ae33_bc_four_plots.png')
-        fig.savefig(path_to_figures + 'ae33_bc_four_plots.png', 
-                    facecolor=facecolor,
-                    #datetime_format='%d/%m/%Y'
+        filename = path_to_figures + 'ae33_bc_four_plots.png'
+        print(filename)
+        fig.savefig(filename, 
+                    facecolor=facecolor, # facecolor='lightgray',
                     #, bbox_inches = 'tight'
-                    )
+                   )
 
 
 
