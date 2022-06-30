@@ -56,9 +56,9 @@ class AE33_device:
         self.head = "Date(yyyy/MM/dd); Time(hh:mm:ss); Timebase; RefCh1; Sen1Ch1; Sen2Ch1; RefCh2; Sen1Ch2; Sen2Ch2; RefCh3; Sen1Ch3; Sen2Ch3; RefCh4; Sen1Ch4; Sen2Ch4; RefCh5; Sen1Ch5; Sen2Ch5; RefCh6; Sen1Ch6; Sen2Ch6; RefCh7; Sen1Ch7; Sen2Ch7; Flow1; Flow2; FlowC; Pressure(Pa); Temperature(°C); BB(%); ContTemp; SupplyTemp; Status; ContStatus; DetectStatus; LedStatus; ValveStatus; LedTemp; BC11; BC12; BC1; BC21; BC22; BC2; BC31; BC32; BC3; BC41; BC42; BC4; BC51; BC52; BC5; BC61; BC62; BC6; BC71; BC72; BC7; K1; K2; K3; K4; K5; K6; K7; TapeAdvCount; "
         #self.ddat_head = self.head.replace("BB(%)", "BB (%)")
         if self.ae_name == '':
-            print("\n\nERROR! Name of the device is unknown!!!!!\n")
+            print("\n\nfill_header:  ERROR! Name of the device is unknown!!!!!\n")
         self.file_header = (
-            "AETHALOMETER\n" + 
+            "AETHALOMETER\n" +
             "Serial number = " +
             self.ae_name +  # "AE33-S08-01006" +
             "\n" + 
@@ -122,6 +122,7 @@ class AE33_device:
                 os.system("mkdir " + path)
                 if not os.path.isdir(param):
                     os.makedirs(param)
+
 
 #                path = self.pathfile + '/tableW/'
                 #path = self.pathfile + '\\tableW\'
@@ -595,9 +596,9 @@ class AE33_device:
         print("write_dataframe_to_excel_file")
         """ write dataframe to excel file """
         ## add columns
-        dataframe.loc[:,'BCbb'] = dataframe['BB(%)'][:].astype(float) / 100 \
-                                * dataframe['BC5'][:].astype(float)
-        dataframe.loc[:,'BCff'] = (100 - dataframe['BB(%)'][:].astype(float)) / 100 \
+        dataframe.loc[:,'BCbb'] = dataframe.loc[:,'BB(%)'].astype(float) / 100 \
+                                * dataframe.loc[:,'BC5'].astype(float)
+        dataframe['BCff'] = (100 - dataframe['BB(%)'][:].astype(float)) / 100 \
                                 * dataframe['BC5'][:].astype(float)
 
         #### extract year and month from data
@@ -689,7 +690,7 @@ class AE33_device:
         if not any(True if self.head[:-4] in x else False for x in header):
         #if self.head[:-4] not in header:
             print("!!!!   File header differ from standart header !!!!")
-            print("header:\n", header)
+            print("header:\n", header[:-4])
             print("standard header:\n", self.head[:-4])
 
         ## --- check device name
