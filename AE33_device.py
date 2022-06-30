@@ -47,7 +47,7 @@ class AE33_device:
 
         ## --- run functions ---
         #sock = socket.socket()
-        #self.fill_header()
+        self.fill_header() ## to develop data files
 
 
     ############################################################################
@@ -595,10 +595,10 @@ class AE33_device:
         print("write_dataframe_to_excel_file")
         """ write dataframe to excel file """
         ## add columns
-        dataframe['BCbb'] = dataframe['BB(%)'].astype(float) / 100 \
-                          * dataframe['BC5'].astype(float)
-        dataframe['BCff'] = (100 - dataframe['BB(%)'].astype(float)) / 100 \
-                          * dataframe['BC5'].astype(float)
+        dataframe['BCbb'] = dataframe['BB(%)'][:].astype(float) / 100 \
+                          * dataframe['BC5'][:].astype(float)
+        dataframe['BCff'] = (100 - dataframe['BB(%)'][:].astype(float)) / 100 \
+                          * dataframe['BC5'][:].astype(float)
 
         #### extract year and month from data
         year_month = dataframe['Datetime'].apply(select_year_month).unique()
@@ -689,7 +689,8 @@ class AE33_device:
         if not any(True if self.head[:-4] in x else False for x in header):
         #if self.head[:-4] not in header:
             print("!!!!   File header differ from standart header !!!!")
-            print("header:\n", self.head[:-4])
+            print("header:\n", header)
+            print("standard header:\n", self.head[:-4])
 
         ## --- check device name
         current_ae_name = [x.split()[-1] for x in header if 'AE33' in x][0]
@@ -705,9 +706,10 @@ class AE33_device:
         #print(columns)
         #print(len(columns), end=' ')
         datum = pd.read_csv(filename, sep='\s+', on_bad_lines='warn', 
-                            skiprows=7,  skip_blank_lines=True,
+                            skiprows=8,  skip_blank_lines=True,
                             index_col=None, names=columns, 
                             encoding='windows-1252')
+        #print(columns, )
 
         ## add column to dataframe 
         #datum = datum.rename(columns={"BB (%)": "BB(%)"})
@@ -721,7 +723,7 @@ class AE33_device:
     ############################################################################
     ## ---- read data from ALL ddat files ----
     ## \return DataFrame with data from all ddat file
-    def read_every_day_files(self, dirname):
+    def read_every_month_files(self, dirname, end='.ddat'):
         ## create empty DataFrame
         data = pd.DataFrame(columns=self.xlscolumns)
 
@@ -733,10 +735,45 @@ class AE33_device:
 
         # перебрать все файлы и считать из них
         year = 2022 ### \todo Add many years 
-        for month in ['02', '03']: ### \todo Add all months
+        for month in ['06']: ### \todo Add all months
+            filename = dirname + f"{year}_{month}_" + self.ae_name + end 
+            #print("file: ", filename, end=' ')
+
+            ## check file exists
+            if not os.path.exists(filename):
+                continue
+
+            print(filename, end=' ')
+
+            df = self.read_ddat_file(filename)
+            if type(df) == type(-1):
+                continue
+            print("df: ", df.shape)
+            data = pd.concat([data, df], ignore_index=True)
+        return data
+
+
+
+    ############################################################################
+    ############################################################################
+    ## ---- read data from ALL dat files ----
+    ## \return DataFrame with data from all ddat file
+    def read_every_day_files(self, dirname, end='.dat'):
+        ## create empty DataFrame
+        data = pd.DataFrame(columns=self.xlscolumns)
+
+        ## check directory
+        if not os.path.isdir(dirname):
+            print("No directory to read data exists: ", dirname)
+            print("Change directorey name or put data to ", dirname)
+            return data ## return empty dataframe
+
+        # перебрать все файлы и считать из них
+        year = 2022 ### \todo Add many years 
+        for month in ['05', '06']: ### \todo Add all months
             for day in range(1, 32):
                 filename = dirname + 'AE33_' + self.ae_name + '_' \
-                         + f"{year}{month}{day:02d}.dat" 
+                         + f"{year}{month}{day:02d}" + end 
 
                 ## check file exists
                 if not os.path.exists(filename):
