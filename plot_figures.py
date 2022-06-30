@@ -175,7 +175,14 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     for i in range(7):
         wave = 'BC' + str(i + 1)
         xx = data[wave].replace(0, np.nan)
-        ax_3.plot(xx, label=wave)
+
+        if i == 0:
+            ax_3.plot(xx, color='red',   label=wave)
+        elif i == 5:
+            ax_3.plot(xx, color='black', label=wave)
+        else:
+            ax_3.plot(xx, label=wave)
+
     ax_3.xaxis.set_major_formatter(fmt)
     ax_3.set_xlim(left=xx.index.min())
     ax_3.set_ylim(bottom=0)
