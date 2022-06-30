@@ -595,10 +595,10 @@ class AE33_device:
         print("write_dataframe_to_excel_file")
         """ write dataframe to excel file """
         ## add columns
-        dataframe['BCbb'] = dataframe['BB(%)'][:].astype(float) / 100 \
-                          * dataframe['BC5'][:].astype(float)
-        dataframe['BCff'] = (100 - dataframe['BB(%)'][:].astype(float)) / 100 \
-                          * dataframe['BC5'][:].astype(float)
+        dataframe.loc[:,'BCbb'] = dataframe['BB(%)'][:].astype(float) / 100 \
+                                * dataframe['BC5'][:].astype(float)
+        dataframe.loc[:,'BCff'] = (100 - dataframe['BB(%)'][:].astype(float)) / 100 \
+                                * dataframe['BC5'][:].astype(float)
 
         #### extract year and month from data
         year_month = dataframe['Datetime'].apply(select_year_month).unique()
@@ -665,7 +665,7 @@ class AE33_device:
         if create_new:
             # create new dummy dataframe
             datum = pd.DataFrame(columns=columns)
-            print("No file", xlsfilename, "  New file will created")
+            print("No file can be open", xlsfilename, "  New file will created")
 
         return datum
 
