@@ -15,7 +15,7 @@ def average_by_three(datum):
     else:
         datum['dt'] = datum['Datetime']
         fmt = '%d.%m.%Y %H:%M'
-        
+
     datum.set_index('dt', inplace=True)
     datum.index = pd.to_datetime(datum.index, format=fmt) # format='%m/%d%Y %-I%M%S %p'
 
@@ -24,24 +24,7 @@ def average_by_three(datum):
 
 
 ############################################################################
-## prepare data to plot
-############################################################################ 
-def prepare_data(datum):
-    ## remove nulls from data
-    for x in datum.columns:
-        if "atetime" in x: continue
-        #datum[x][datum[x] == 0] = np.nan
-        mask = datum[x] == 0
-        #datum.loc[mask, x] = np.nan
-        #datum.loc[:, x] = datum[x].replace(0, np.nan)
-        #print(x)
-
-    return datum
-
-
-
-############################################################################
-## Return possible datatime format
+##  Return possible datatime format
 ############################################################################
 def get_time_format():
     ##  check if format is possible
@@ -51,6 +34,87 @@ def get_time_format():
     except:
         fmt = dates.DateFormatter('%d/%m/%Y\n %H:%M')
     return fmt
+
+
+############################################################################
+##  Prepare data to plot graphs
+############################################################################
+def get_year_from_filename(name):
+    sep = '/'
+    year = name.split(sep)[-1].split('_')[0]
+    month = name.split(sep)[-1].split('_')[1]
+    return int(year), int(month)
+
+
+############################################################################
+##  Get data from previous_month
+############################################################################
+def get_data_from_previous_month(name):
+    sep = '/'
+    ##  get actual year and month
+    year, month = get_year_from_filename(name)
+    #print(year, month)
+    ##  calculate previous year and month
+    newmonth = month - 1 if month > 2 else 12
+    newyear = year - 1 if month == 12 else year
+    #print(newyear, newmonth)
+
+    ##  replace year and month in filename
+    print(name)
+    nparts = name.split(sep)
+    nfile = nparts[-1].split('_')
+    nfile[0] = str(newyear)
+    nfile[1] = f'{newmonth:02d}'
+    nparts[-1] = '_'.join(nfile)
+    newname = sep.join(nparts)
+    print(newname)
+
+    ## get previous month data
+    data = pd.read_excel(newname)
+
+    return data
+
+
+
+############################################################################
+##  Prepare data to plot graphs
+##  get 2 week data from data files
+############################################################################
+def prepare_data(xlsfilename):
+    data = pd.read_excel(xlsfilename)
+
+    ##  make column to plot on x axis
+    if 'Date' in data.columns:
+        x = (data['Date'].astype('string') + ' ' + data['Time (Moscow)'].astype('string'))
+        x = pd.to_datetime(x, format='%Y/%m/%d %H:%M:%S')
+    else:
+        x = pd.to_datetime(data['Datetime'], format='%d.%m.%Y %H:%M')
+    #print(x)
+
+    ## если данных меньше, чем 2 недели, считать данные за прошлый месяц
+    if x.min() + pd.to_timedelta("336:00:00") > x.max():
+        print("Data file has less than 2 week data")
+        olddata = get_data_from_previous_month(xlsfilename)
+        data = pd.concat([olddata, data], ignore_index=True)
+        #print(f"joined data: {data.shape}\n", data.head())
+        ## make column to plot on x axis
+        if 'Date' in data.columns:
+            x = (data['Date'].astype('string') + ' ' + data['Time (Moscow)'].astype('string'))
+            x = pd.to_datetime(x, format='%Y/%m/%d %H:%M:%S')
+        else:
+            x = pd.to_datetime(data['Datetime'], format='%d.%m.%Y %H:%M')
+    else:
+        print("One file is enouth")
+
+    data['plotx'] = x
+
+    ##  оставить только две недели
+    xmin = x.max() - pd.to_timedelta("336:00:00") ## 14 days
+    #print("xmin: ", xmin)
+    data = data[pd.to_datetime(data['plotx']) > xmin]
+    #print(f"only 2 weeks: {data.shape}\n", data.head())
+
+    return data
 
 
 
@@ -67,18 +131,16 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
         os.makedirs(path_to_figures)
 
 
-    ## read data
-    datum = pd.read_excel(xlsfilename)
-    ## take two days data
-    data = datum[-2880:]
-    data = prepare_data(data)
-    if 'Date' in data.columns:
-        x = (data['Date'].astype('string') + ' ' + data['Time (Moscow)'].astype('string'))
-        x = pd.to_datetime(x, format='%Y/%m/%d %H:%M:%S')
-    else:
-        x = data['Datetime'].astype('string')
-        x = pd.to_datetime(x, format='%d.%m.%Y %H:%M')
-    #print(x)
+    ## read and prepare data
+    datum = prepare_data(xlsfilename)
+    print(datum.head(2))
+
+
+    ## get 2 days data
+    xmin = datum.plotx.max() - pd.to_timedelta("48:01:00")  ##  2 days
+    print("xmin: ", xmin)
+    data = datum[datum.plotx >= xmin]
+    x = data['plotx']
 
     # format graph
     fmt = get_time_format()
@@ -150,7 +212,7 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     ## Make average by three points
     data = average_by_three(datum)
     ## get only last two weeks
-    xmin = data.index.max() - pd.to_timedelta("336:00:00")
+    xmin = data.index.max() - pd.to_timedelta("336:00:00") ## 14 days
     data = data[data.index >= xmin]
 
     ## set new axis label format
@@ -184,7 +246,8 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
             ax_3.plot(xx, label=wave)
 
     ax_3.xaxis.set_major_formatter(fmt)
-    ax_3.set_xlim(left=xx.index.min())
+    #ax_3.set_xlim(left=xx.index.min())
+    ax_3.set_xlim(left=xmin)
     ax_3.set_ylim(bottom=0)
     ax_3.legend() # ncol = 7, fontsize = 9)
     ax_3.grid()
@@ -209,7 +272,8 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     ax_4.plot(zz, 'orange', label='BCbb')
     ax_4.fill_between(zz.index, zz, np.zeros_like(zz), color='orange')
     ax_4.xaxis.set_major_formatter(fmt)
-    ax_4.set_xlim(left=zz.index.min())
+    #ax_4.set_xlim(left=zz.index.min())
+    ax_4.set_xlim(left=xmin)
     ax_4.set_ylim(bottom=0)
     ax_4.legend()
     ax_4.grid()
@@ -235,13 +299,17 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
 ## --------------------------------------------------------------------------------------------------
 if __name__ == "__main__":
     path_to_figures = "./figures/"
-    ae_name = 'AE33-S09-01249'
-    timestamp = '2022_06'
+    ae_name = 'AE33-S08-01006'
+    #ae_name = 'AE33-S09-01249'
+    dataname = "_".join(ae_name.split('-'))
+    dirname = './data/' + dataname + '/table/'
+    timestamp = '2022_04'  #'2022_06'
+    filename = timestamp + '_' + ae_name + '.xlsx'
 
     # create one figure with four graphs
     #plot_four_figures_from_excel('./data/table/2022_03_AE33-S08-01006.xlsx', path_to_figures )
-    plot_four_figures_from_excel('./data/table/'+ timestamp + '_' + ae_name + '.xlsx', path_to_figures )
+    plot_four_figures_from_excel(dirname + filename, path_to_figures)
 
     # create four figures
-    #plot_four_figures_from_excel('./data/table/2022_03_AE33-S08-01006.xlsx', path_to_figures, 4)
-    plot_four_figures_from_excel('./data/table/'+ timestamp + '_' + ae_name + '.xlsx', path_to_figures, 4 )
+    #plot_four_figures_from_excel('./data/table/'+ timestamp + '_' + ae_name + '.xlsx', path_to_figures, 4 )
+    plot_four_figures_from_excel(dirname + filename, path_to_figures, 4)
