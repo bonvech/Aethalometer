@@ -629,9 +629,9 @@ class AE33_device:
             print(ym_pattern, ": ", dfsave.shape)
 
             ##### try to open excel file #####
-            ## read or cleate datafame
+            ## read or create datafame
             xlsdata = self.read_dataframe_from_excel_file(filenamexls)
-            if xlsdata.shape[0]:
+            if xlsdata.shape[0]:  ## data was read from file
                 dfsave = pd.concat([xlsdata, dfsave], ignore_index=True)\
                         .drop_duplicates(subset=['Datetime'])\
                         .sort_values(by=['Datetime'])
@@ -641,6 +641,16 @@ class AE33_device:
                     bot.send_message(config.channel, text)
                     self.print_message(text, '\n')
                     return 1
+            ## no data was read - no file was opened
+            elif os.path.file(filenamexls): ## if file exists, but not read
+                text = "Data file " + filenamexls + " is not available. File with new name will created."
+                self.print_message(text, '\n')                
+                timestr = "_".join(str(datetime.now()).split())
+                filenamexls = filenamexls[:-4] + timestr + ".xlsx"
+                filenamecsv = filenamecsv[:-3] + timestr + ".csv"
+                text = "Data file " + filenamexls + " created."
+                self.print_message(text, '\n')                
+
 
             dfsave.set_index('Datetime').to_excel(filenamexls, engine='openpyxl')
             dfsave.set_index('Datetime').to_csv(filenamecsv)
@@ -674,7 +684,7 @@ class AE33_device:
         if create_new:
             # create new dummy dataframe
             datum = pd.DataFrame(columns=columns)
-            text = "No file can be open" + xlsfilename + "  New file will created"
+            text = "Can not to open file: " + xlsfilename + "  New file will created"
             self.print_message(text, '\n')
 
         return datum
