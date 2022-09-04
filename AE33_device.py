@@ -521,7 +521,7 @@ class AE33_device:
 
             ## --- for first line or new file
             if mm != lastmm or yy != lastyy:
-                ## -- ddat file 
+                ## -- ddat filename 
                 #filename = '_'.join((yy, mm)) + "_" + 'AE33-S08-01006.ddat'
                 filename = '_'.join((yy, mm)) + "_" + self.ae_name + '.ddat'
                 if self.pathfile[-1] != self.sep:
@@ -529,19 +529,18 @@ class AE33_device:
                 filename = self.pathfile + 'ddat' + self.sep + filename
                 print(filename,mm,yy,lastmm,lastyy)
                 try:
-                    ## ddat file exists
+                    ## ddat file exists: read last line datetime
                     f = open(filename, 'r')
                     lastline = f.readlines()[-1].split()
                     #print(lastline)
                     f.close()
                     #print('3')
                     lasttime = lastline[0] + ' ' + lastline[1]
-                    print('1  ',lasttime)
+                    print('1: ', lasttime)
                     lasttime = datetime.strptime(lasttime, dateformat)
-                    #print('4',lastmm,lastyy,mm,yy)
                     need_check = True
                 except:
-                    ## no file
+                    ## no file: create new file and write header
                     f = open(filename, 'a')
                     f.write(self.file_header.replace("BB(%)", "BB (%)"))
                     f.close()

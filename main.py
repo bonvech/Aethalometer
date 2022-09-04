@@ -11,8 +11,8 @@ device = AE33_device()
 
 device.read_path_file()
 device.print_params()
-device.MAXID = device.MINID
-print(device.MAXID)
+#device.MAXID = device.MINID
+#print(device.MAXID)
 
 if device.connect() == 1:
     text = "Connect error"
@@ -32,6 +32,7 @@ delay = 100
 
 start = device.MAXID - delay
 fin = device.MAXID
+print(start, fin)
 
 #device.request('FETCH DATA',start,fin)  #-  не работает, перевести байты в стринги
 device.request('$AE33:D' + str(delay), 0, 0)  #-  то же самое
