@@ -40,7 +40,11 @@ def get_time_format():
 ##  Prepare data to plot graphs
 ############################################################################
 def get_year_from_filename(name):
-    sep = '/'
+    if 'ix' in os.name:
+        sep = '/'  ## -- path separator for LINIX
+    else:
+        sep = '\\' ## -- path separator for Windows
+
     year = name.split(sep)[-1].split('_')[0]
     month = name.split(sep)[-1].split('_')[1]
     return int(year), int(month)
@@ -50,7 +54,12 @@ def get_year_from_filename(name):
 ##  Get data from previous_month
 ############################################################################
 def get_data_from_previous_month(name):
-    sep = '/'
+    #sep = '/'
+    if 'ix' in os.name:
+        sep = '/'  ## -- path separator for LINIX
+    else:
+        sep = '\\' ## -- path separator for Windows
+
     ##  get actual year and month
     year, month = get_year_from_filename(name)
     #print(year, month)
@@ -201,10 +210,8 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     ## save to file "ae33_bc.png"
     if nfigs != 1:
         ax_2.set_title(title, loc='right')
-        fig.savefig(path_to_figures + 'ae33_bc_day.svg', 
-                    facecolor=facecolor, bbox_inches='tight') 
-        fig.savefig(path_to_figures + 'ae33_bc_day.png', 
-                    facecolor=facecolor, bbox_inches='tight') 
+        fig.savefig(path_to_figures + 'ae33_bc_day.svg', facecolor=facecolor, bbox_inches='tight') 
+        fig.savefig(path_to_figures + 'ae33_bc_day.png', facecolor=facecolor, bbox_inches='tight') 
 
 
     #####################################

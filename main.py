@@ -11,17 +11,17 @@ device = AE33_device()
 
 device.read_path_file()
 device.print_params()
-
 device.MAXID = device.MINID
 print(device.MAXID)
 
 if device.connect() == 1:
+    text = "Connect error"
+    device.print_message(text, '\n')
     exit("Connect error")
 
 device.request('HELLO',0,0)
 #device.request('?',0,0)  #- не работает
 device.request('MAXID DATA',0,0)  #- не работает
-#x = input()
 
 delay = 100
 
@@ -34,15 +34,16 @@ start = device.MAXID - delay
 fin = device.MAXID
 
 #device.request('FETCH DATA',start,fin)  #-  не работает, перевести байты в стринги
-device.request('$AE33:D'+str(delay),0,0)  #-  то же самое
-device.request('CLOSE',0,0)
+device.request('$AE33:D' + str(delay), 0, 0)  #-  то же самое
+device.request('CLOSE', 0, 0)
 device.unconnect()
-
-#device.plot_from_excel_file(device.xlsfilename)
 device.write_path_file()
 
 
-path_to_figures = "./figures/"
+###############################################################
+##  plot figures
+##
+path_to_figures = "." + device.sep + "figures" + device.sep
 # create one figure with four graphs
 plot_four_figures_from_excel(device.xlsfilename, path_to_figures, )
 # create four figures

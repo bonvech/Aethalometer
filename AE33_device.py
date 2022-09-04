@@ -1,4 +1,4 @@
-## you need to install
+## you need to install 
 # pip install pandas
 # pip install openpyxl==3.0.9
 # pip install pyTelegramBotAPI
@@ -36,6 +36,7 @@ class AE33_device:
         self.ae_name = ''    ## 'AE33-S09-01249' # 'AE33-S08-01006'
 
         self.run_mode = 0
+        self.logfilename = "ae33_log.txt"  ## file to write log messages
 
         self.buff = ''
         self.info = ''
@@ -45,9 +46,24 @@ class AE33_device:
         self.sock = None  ## socket
         self.xlscolumns = ['Datetime', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6', 'BC7', 'BB(%)']
 
+        if 'ix' in os.name:
+            self.sep = '/'  ## -- path separator for LINIX
+        else:
+            self.sep = '\\' ## -- path separator for Windows
+
         ## --- run functions ---
         #sock = socket.socket()
         self.fill_header() ## to develop data files
+
+
+    ## ----------------------------------------------------------------
+    ##  Print message to logfile
+    ## ----------------------------------------------------------------
+    def print_message(self, message, end=''):
+        print(message)
+        flog = open(self.logfilename,'a')
+        flog.write(message + end)
+        flog.close()
 
 
     ############################################################################
@@ -97,45 +113,31 @@ class AE33_device:
                 if not os.path.isdir(param):
                     os.makedirs(param)
                 os.system("mkdir " + param)
+                
+                if self.pathfile[-1] != self.sep:
+                    print('add sep', self.pathfile)
+                    self.pathfile += self.sep       
 
-                path = self.pathfile + '\\raw\\'
+                path = self.pathfile + 'raw' + self.sep
                 #path = self.pathfile + 'raw/'
                 #print(path)
-                os.system("mkdir " + path)
-                if not os.path.isdir(param):
-                    os.makedirs(param)
+                #os.system("mkdir " + path)
+                if not os.path.isdir(path):
+                    os.makedirs(path)
 
                 #path = self.pathfile + '/ddat/'
-                path = self.pathfile + '\\ddat\\'
+                path = self.pathfile + 'ddat' + self.sep
                 os.system("mkdir " + path)
-                if not os.path.isdir(param):
-                    os.makedirs(param)
-
-                #path = self.pathfile + '\\wdat\'
-#                path = self.pathfile + '/wdat/'
-                #os.system("mkdir " + path)
-##                if not os.path.isdir(param):
-##                    os.makedirs(param)
+                if not os.path.isdir(path):
+                    os.makedirs(path)
 
                 #path = self.pathfile + '/table/'
-                path = self.pathfile + '\\table\\'
+                path = self.pathfile + 'table' + self.sep
                 os.system("mkdir " + path)
-                if not os.path.isdir(param):
-                    os.makedirs(param)
+                if not os.path.isdir(path):
+                    os.makedirs(path)
 
 
-#                path = self.pathfile + '/tableW/'
-                #path = self.pathfile + '\\tableW\'
-                #os.system("mkdir " + path)
-##                if not os.path.isdir(param):
-##                    os.makedirs(param)
-
-                #path = self.pathfile + '/graphs/'
-#                path = self.pathfile + '\\graphs\\'
-#                print(path)
-#                os.system("mkdir " + path)
-#                if not os.path.isdir(param):
-#                    os.makedirs(param)
     # \todo ПОПРАВИТЬ в конфигурацилонном файле СЛЕШИ В ИМЕНИ ДИРЕКТОРИИ  !!!   для ВИНДА
 
 
@@ -143,21 +145,17 @@ class AE33_device:
     ############################################################################
     def write_path_file(self):
         f = open("PATHFILES.CNF.bak", 'w')
-        f.write("#\n")
-        f.write("# Programm mode:\n")
+        f.write("#\n# Programm mode:\n")
         f.write("#   1 - for MAIN-menu,  0 - Auto RUN\n")
         f.write("#\n")
         f.write("RUN=" + str(self.run_mode) + "\n")
-        f.write("#\n")
-        f.write("# Directory for DATA:\n")
+        f.write("#\n# Directory for DATA:\n")
         f.write("#\n")
         f.write(self.pathfile + '\n')
-        f.write("#\n")
-        f.write("# AE33:   IP address and Port:\n")
+        f.write("#\n# AE33:   IP address and Port:\n")
         f.write("#\n")
         f.write("IP=" + self.IPname + '  ' + str(self.Port) +"\n")
-        f.write("#\n")
-        f.write("# AE33:  Last Records:\n")
+        f.write("#\n# AE33:  Last Records:\n")
         f.write("#\n")
         f.write("MINID=" + str(self.MAXID) + "\n")
         f.write("#\n")
@@ -177,6 +175,9 @@ class AE33_device:
     ############################################################################
     ############################################################################
     def connect(self):
+        text = "\n============================================\n" + str(datetime.now()) + '  '
+        self.print_message(text)
+
         errcode = 0
         #if self.active == -1:
         #    return -1
@@ -190,16 +191,18 @@ class AE33_device:
         ## --- connect to server
         try:
             self.sock.connect((self.IPname, self.Port))
+            text = 'socket connected'
+            self.print_message(text, '\n')
             #sock.connect(('localhost', 3000)) 
         ## \todo проверить, что связь установлена
-        ## если нет - написать в лог 
-        ## и написать в телеграм канал
         except TimeoutError:
             errcode = 1
             text = f"Message: Timeout error: AE33 on address {self.IPname} does not responde"
-            print(text)
             bot = telebot.TeleBot(config.token, parse_mode=None)
             bot.send_message(config.channel, text)
+            ## write to logfile
+            text = str(datetime.now()) + ' ' + text
+            self.print_message(text, '\n')
 
         return errcode
 
@@ -303,9 +306,10 @@ class AE33_device:
     ############################################################################
     ############################################################################
     def extract_device_name(self):
-            buff = self.buff.split("\r\n")
-            self.ae_name = [x.split()[2] for x in buff if "serialnumb" in x][0]
-            print(f'Device name: {self.ae_name}')
+        buff = self.buff.split("\r\n")
+        self.ae_name = [x.split()[2] for x in buff if "serialnumb" in x][0]
+        text = f'Device name: {self.ae_name}'
+        self.print_message(text, '\n')
 
 
 
@@ -480,6 +484,7 @@ class AE33_device:
 
 
     ############################################################################
+    ## write to ddat data
     ############################################################################
     def parse_format_D_data(self):
         ## main
@@ -519,8 +524,9 @@ class AE33_device:
                 ## -- ddat file 
                 #filename = '_'.join((yy, mm)) + "_" + 'AE33-S08-01006.ddat'
                 filename = '_'.join((yy, mm)) + "_" + self.ae_name + '.ddat'
-                #filename = self.pathfile +'\ddat\\' + filename
-                filename = self.pathfile +'/ddat/' + filename
+                if self.pathfile[-1] != self.sep:
+                    self.pathfile = self.pathfile + self.sep
+                filename = self.pathfile + 'ddat' + self.sep + filename
                 print(filename,mm,yy,lastmm,lastyy)
                 try:
                     ## ddat file exists
@@ -536,10 +542,11 @@ class AE33_device:
                     need_check = True
                 except:
                     ## no file
-                    print('NOT FILE', filename, "found. New file created.")
                     f = open(filename, 'a')
                     f.write(self.file_header.replace("BB(%)", "BB (%)"))
                     f.close()
+                    text = 'NOT FILE' + filename + "found. New file created."
+                    self.print_message(text, '\n')
                     lastline = []
                     need_check = False
                 lastmm = mm
@@ -605,7 +612,7 @@ class AE33_device:
         year_month = dataframe['Datetime'].apply(select_year_month).unique()
 
         ### prepare directory
-        table_dirname = self.pathfile + 'table/' #'./data/xls/'
+        table_dirname = self.pathfile + 'table' + self.sep #'./data/xls/'
         print("table_dirname:", table_dirname)
         if not os.path.isdir(table_dirname):
             os.makedirs(table_dirname)
@@ -633,8 +640,8 @@ class AE33_device:
                     text = f"No new data received from {self.ae_name}"
                     bot = telebot.TeleBot(config.token, parse_mode=None)
                     bot.send_message(config.channel, text)
+                    self.print_message(text, '\n')
                     return 1
-
 
             dfsave.set_index('Datetime').to_excel(filenamexls, engine='openpyxl')
             dfsave.set_index('Datetime').to_csv(filenamecsv)
@@ -656,7 +663,9 @@ class AE33_device:
             print(xlsfilename, "read, df: ", datum.shape)
             print(datum.head(2))
             if datum.shape[1] != len(columns) + 2:
-                print(f"WARNING!!! File {xlsfilename} has old format, is ignoring!!!")
+                text = f"WARNING!!! File {xlsfilename} has old format, is ignoring!!!"
+                self.print_message(text, '\n')
+
                 point = xlsfilename.rfind('.')
                 os.rename(xlsfilename, xlsfilename[:point] + "_old" +  xlsfilename[point:])
                 create_new = True
@@ -666,7 +675,8 @@ class AE33_device:
         if create_new:
             # create new dummy dataframe
             datum = pd.DataFrame(columns=columns)
-            print("No file can be open", xlsfilename, "  New file will created")
+            text = "No file can be open" + xlsfilename + "  New file will created"
+            self.print_message(text, '\n')
 
         return datum
 
