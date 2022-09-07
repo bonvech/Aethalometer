@@ -576,7 +576,7 @@ class AE33_device:
 
             need_check = False
 
-            ## write to file
+            ## write to ddat file
             f = open(filename, 'a')
             f.write(line+'\n')
             f.close()
@@ -630,7 +630,9 @@ class AE33_device:
 
             ## отфильтровать строки за нужный месяц и год
             dfsave = dataframe[dataframe['Datetime'].apply(select_year_month) == ym_pattern]
-            print(ym_pattern, ": ", dfsave.shape)
+            text = ym_pattern + ": " + str(dfsave.shape)
+            self.print_message(text, '\n')
+            #print(ym_pattern, ": ", dfsave.shape)
 
             ##### try to open excel file #####
             ## read or create datafame
@@ -645,6 +647,8 @@ class AE33_device:
                     bot.send_message(config.channel, text)
                     self.print_message(text, '\n')
                     return 1
+                text = str(xlsdata.shape[0]) + " lines was read from excel file"
+                self.print_message(text, '\n')
             ## no data was read - no file was opened
             elif os.path.file(filenamexls): ## if file exists, but not read
                 text = "Data file " + filenamexls + " is not available. File with new name will created."
