@@ -514,6 +514,8 @@ class AE33_device:
         colnums = [header.index(x) for x in columns]
         rows_list = []
 
+
+        ## ---- write from buffer to ddat file --- ##
         for line in self.buff[::-1]:
             #print('line:   ',line)
             yy, mm, _ = line.split()[0].split('/')
@@ -578,7 +580,8 @@ class AE33_device:
             f = open(filename, 'a')
             f.write(line+'\n')
             f.close()
-
+        ## ---- end of write from buffer to ddat file --- ##
+ 
  
         print("make dataframe_from_buffer")
         dataframe_from_buffer = pd.DataFrame(rows_list, columns=columns)
@@ -588,19 +591,20 @@ class AE33_device:
                 + ' ' \
                 + dataframe_from_buffer['Time(hh:mm:ss)'].apply(lambda x: ':'.join(x.split(':')[:2]))
 
-        ## save fo excel
+        ## --- save fo excel
         #print("write_dataframe_to_excel_file")
         self.write_dataframe_to_excel_file(dataframe_from_buffer[self.xlscolumns])
 
 
     ############################################################################
-    ############################################################################
     ### write dataframe to excel file
     ### \return - no return
     ###
+    ############################################################################
     def write_dataframe_to_excel_file(self, dataframe):
-        print("write_dataframe_to_excel_file")
         """ write dataframe to excel file """
+        print("write_dataframe_to_excel_file")
+        
         ## add columns
         dataframe.loc[:,'BCbb'] = dataframe.loc[:,'BB(%)'].astype(float) / 100 \
                                 * dataframe.loc[:,'BC5'].astype(float)
@@ -611,7 +615,7 @@ class AE33_device:
         year_month = dataframe['Datetime'].apply(select_year_month).unique()
 
         ### prepare directory
-        table_dirname = self.pathfile + 'table' + self.sep #'./data/xls/'
+        table_dirname = self.pathfile + 'table' + self.sep
         print("table_dirname:", table_dirname)
         if not os.path.isdir(table_dirname):
             os.makedirs(table_dirname)
@@ -649,7 +653,10 @@ class AE33_device:
                 filenamexls = filenamexls[:-4] + timestr + ".xlsx"
                 filenamecsv = filenamecsv[:-3] + timestr + ".csv"
                 text = "Data file " + filenamexls + " created."
-                self.print_message(text, '\n')                
+                self.print_message(text, '\n')
+            else:
+                text = "else: " + str(os.path.file(filenamexls))
+                self.print_message(text, '\n')
 
 
             dfsave.set_index('Datetime').to_excel(filenamexls, engine='openpyxl')
@@ -684,7 +691,7 @@ class AE33_device:
         if create_new:
             # create new dummy dataframe
             datum = pd.DataFrame(columns=columns)
-            text = "Can not to open file: " + xlsfilename + "  New file will created"
+            text = "Can not open file: " + xlsfilename + "  Empty dummy dataframe created"
             self.print_message(text, '\n')
 
         return datum
