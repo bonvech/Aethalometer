@@ -650,7 +650,7 @@ class AE33_device:
                 text = str(xlsdata.shape[0]) + " lines was read from excel file"
                 self.print_message(text, '\n')
             ## no data was read - no file was opened
-            elif os.path.file(filenamexls): ## if file exists, but not read
+            elif os.path.isfile(filenamexls): ## if file exists, but not read
                 text = "Data file " + filenamexls + " is not available. File with new name will created."
                 self.print_message(text, '\n')                
                 timestr = "_".join(str(datetime.now()).split())
@@ -659,7 +659,7 @@ class AE33_device:
                 text = "Data file " + filenamexls + " created."
                 self.print_message(text, '\n')
             else:
-                text = "else: " + str(os.path.file(filenamexls))
+                text = "else: " + filenamexls + str(os.path.isfile(filenamexls))
                 self.print_message(text, '\n')
 
 

@@ -65,8 +65,8 @@ def get_data_from_previous_month(name):
     #print(year, month)
     ##  calculate previous year and month
     newmonth = month - 1 if month > 2 else 12
-    newyear = year - 1 if month == 12 else year
-    #print(newyear, newmonth)
+    newyear = year - 1 if month == 1 else year
+    print(newyear, newmonth)
 
     ##  replace year and month in filename
     print(name)
@@ -134,6 +134,7 @@ def prepare_data(xlsfilename):
 ##def plot_four_figures_from_excel(self, xlsfilename)
 def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     print(f"Plot  {nfigs}  figures")
+    #print(xlsfilename, path_to_figures, nfigs)
 
     #print(path_to_figures)
     if not os.path.isdir(path_to_figures):
