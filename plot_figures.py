@@ -64,7 +64,7 @@ def get_data_from_previous_month(name):
     year, month = get_year_from_filename(name)
     #print(year, month)
     ##  calculate previous year and month
-    newmonth = month - 1 if month > 2 else 12
+    newmonth =   12    if month == 1 else month - 1 
     newyear = year - 1 if month == 1 else year
     print(newyear, newmonth)
 
