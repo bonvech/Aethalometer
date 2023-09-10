@@ -19,8 +19,8 @@ def average_by_three(datum):
     datum.set_index('dt', inplace=True)
     datum.index = pd.to_datetime(datum.index, format=fmt) # format='%m/%d%Y %-I%M%S %p'
 
-    #return datum.resample("3T").sum().fillna().rolling(window=3, min_periods=1).mean()
-    return datum.resample("3T").sum().rolling(window=3, min_periods=1).mean()
+    return datum.resample("3T").mean().fillna(0).rolling(window=3, min_periods=1).mean()
+    #return datum.resample("3T").sum().rolling(window=3, min_periods=1).mean()
 
 
 ############################################################################
@@ -219,6 +219,8 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     #####################################
     ## Make average by three points
     data = average_by_three(datum)
+    print("+++++>\n", datum.head(10))
+    print("=====>\n", data.head(10))
     ## get only last two weeks
     xmin = data.index.max() - pd.to_timedelta("336:00:00") ## 14 days
     data = data[data.index >= xmin]

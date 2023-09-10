@@ -2,17 +2,10 @@ from AE33_device import AE33_device
 from plot_figures import *
 
 
-
-#sock1 = socket.socket()
-#sock1.connect(("192.168.1.98", 3000)) 
-
-
 device = AE33_device()
 
 device.read_path_file()
 device.print_params()
-#device.MAXID = device.MINID
-#print(device.MAXID)
 
 if device.connect() == 1:
     text = "Connect error"
@@ -23,13 +16,12 @@ device.request('HELLO',0,0)
 #device.request('?',0,0)  #- не работает
 device.request('MAXID DATA',0,0)  #- не работает
 
-delay = 100
-
 ##   1 измерений -->  403  bytes
 ##   1000 измерений -->  48018  bytes
 ##   за сутки  1440  измеений  ~  600 000 bytes
 ##   за месяц  43200  измерений  ~  20 000 000 bytes
 
+delay = 100
 start = device.MAXID - delay
 fin = device.MAXID
 print(start, fin)

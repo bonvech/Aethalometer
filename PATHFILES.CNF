@@ -11,7 +11,7 @@ RUN=1
 #
 # AE33:   IP address and Port:
 #
-IP=192.168.1.38   8002
+IP=192.168.1.37  8002
 #
 #
 # AE33:  Last Records:

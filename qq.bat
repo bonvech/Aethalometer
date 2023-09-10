@@ -1,6 +1,9 @@
 echo
-rem cd C:\Users\Olga\Desktop\AA\AE33-S09\
-python main.py
-rem python plot_figures.py
+
+d:
+cd \AA\AE33-S09\
+
+start /min python main.py 
+
 rem pause
-rem pause
+
