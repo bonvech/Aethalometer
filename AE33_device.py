@@ -648,8 +648,11 @@ class AE33_device:
                         .sort_values(by=['Datetime'])
                 if xlsdata.shape[0] == dfsave.shape[0]:
                     text = f"No new data received from {self.ae_name}"
-                    bot = telebot.TeleBot(config.token, parse_mode=None)
-                    bot.send_message(config.channel, text)
+                    try:
+                        bot = telebot.TeleBot(config.token, parse_mode=None)
+                        bot.send_message(config.channel, text)
+                    except:
+                        self.print_message("Cannnot send message to bot", '\n')
                     self.print_message(text, '\n')
                     return 1
                 text = str(xlsdata.shape[0]) + " lines was read from excel file"
