@@ -154,6 +154,7 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
 
     # format graph
     fmt = get_time_format()
+    locator = dates.AutoDateLocator(minticks=20, maxticks=50)
     plt.rcParams['xtick.labelsize'] = 10
     facecolor = 'white'
     title = xlsfilename.split('/')[-1].split('/')[-1].split('.')[-2].split('_')[-1]
@@ -179,12 +180,17 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
             ax_1.plot(x, y, color='black', label=wave)
         else:
             ax_1.plot(x, y, label=wave)
-    ax_1.xaxis.set_major_formatter(fmt)
+            
     ax_1.set_xlim(xlims)
     ax_1.set_ylim(bottom=0)
     ax_1.legend()
     ax_1.set_title(title, loc='right')
-    ax_1.grid()
+    
+    ax_1.xaxis.set_major_formatter(fmt)
+    ax_1.xaxis.set_minor_locator(locator)
+    ax_1.grid(which='major', alpha=0.9)
+    ax_1.grid(which='minor', alpha=0.5, linestyle='--')
+
     ## save to file "ae33_bc_waves.png"
     if nfigs != 1:
         fig.savefig(path_to_figures + 'ae33_bc_waves_day.svg', facecolor=facecolor, bbox_inches='tight') 
@@ -203,11 +209,16 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     ax_2.fill_between(x, data["BCff"].replace(0, np.nan), np.zeros_like(y), color='black')
     ax_2.plot(x, data["BCbb"].replace(0, np.nan), 'orange', label='BCbb')
     ax_2.fill_between(x, data["BCbb"].replace(0, np.nan), np.zeros_like(y), color='orange')
-    ax_2.xaxis.set_major_formatter(fmt)
+
     ax_2.set_xlim(xlims)
     ax_2.set_ylim(bottom=0)
     ax_2.legend()
-    ax_2.grid()
+
+    ax_2.xaxis.set_major_formatter(fmt)
+    ax_2.xaxis.set_minor_locator(locator)
+    ax_2.grid(which='major', alpha=0.9)
+    ax_2.grid(which='minor', alpha=0.5, linestyle='--')
+
     ## save to file "ae33_bc.png"
     if nfigs != 1:
         ax_2.set_title(title, loc='right')
@@ -241,7 +252,7 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
         ax_3 = fig.add_subplot(3, 2, 5)
         #ax_3 = fig.add_subplot(4, 2, 7)
     else:
-        fig = plt.figure(figsize=(8, 4))
+        fig = plt.figure(figsize=(10, 5))
         ax_3 = fig.add_subplot(1, 1, 1)
 
     for i in range(7):
@@ -255,12 +266,16 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
         else:
             ax_3.plot(xx, label=wave)
 
-    ax_3.xaxis.set_major_formatter(fmt)
     #ax_3.set_xlim(left=xx.index.min())
     ax_3.set_xlim(left=xmin)
     ax_3.set_ylim(bottom=0)
     ax_3.legend() # ncol = 7, fontsize = 9)
-    ax_3.grid()
+    
+    ax_3.xaxis.set_major_formatter(fmt)
+    ax_3.xaxis.set_minor_locator(locator)
+    ax_3.grid(which='major', alpha=0.9)
+    ax_3.grid(which='minor', alpha=0.5, linestyle='--')    
+  
     ## save to file "ae33_bc_waves_week.png"
     if nfigs != 1:
         ax_3.set_title(title, loc='right')
@@ -272,7 +287,7 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     if nfigs == 1:
         ax_4 = fig.add_subplot(3, 2, 6)
     else:
-        fig = plt.figure(figsize=(8, 4))
+        fig = plt.figure(figsize=(10, 5))
         ax_4 = fig.add_subplot(1, 1, 1)
 
     yy = data["BCff"].replace(0, np.nan)
@@ -281,12 +296,16 @@ def plot_four_figures_from_excel(xlsfilename, path_to_figures, nfigs=1):
     ax_4.fill_between(yy.index, yy, np.zeros_like(yy), color='black')
     ax_4.plot(zz, 'orange', label='BCbb')
     ax_4.fill_between(zz.index, zz, np.zeros_like(zz), color='orange')
-    ax_4.xaxis.set_major_formatter(fmt)
+
     #ax_4.set_xlim(left=zz.index.min())
     ax_4.set_xlim(left=xmin)
     ax_4.set_ylim(bottom=0)
     ax_4.legend()
-    ax_4.grid()
+
+    ax_4.xaxis.set_major_formatter(fmt)
+    ax_4.xaxis.set_minor_locator(locator)
+    ax_4.grid(which='major', alpha=0.9)
+    ax_4.grid(which='minor', alpha=0.5, linestyle='--')
 
     ## save one figure to file "ae33_bc_week.png"
     if nfigs != 1:

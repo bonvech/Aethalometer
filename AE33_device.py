@@ -195,15 +195,20 @@ class AE33_device:
             self.print_message(text, '\n')
             #sock.connect(('localhost', 3000)) 
         ## \todo проверить, что связь установлена
-        except TimeoutError:
+        except Exception as e:  #TimeoutError:
             errcode = 1
-            text = f"Message: Timeout error: AE33 on address {self.IPname} does not responde"
-            bot = telebot.TeleBot(config.token, parse_mode=None)
-            bot.send_message(config.channel, text)
+            text = f"Message: error <<{e}>>: AE33 on address {self.IPname} does not responde"
             ## write to logfile
-            text = str(datetime.now()) + ' ' + text
-            self.print_message(text, '\n')
-
+            logtext = str(datetime.now()) + ' ' + text
+            self.print_message(logtext, '\n')
+            ## write to bot
+            try:
+                bot = telebot.TeleBot(config.token, parse_mode=None)
+                bot.send_message(config.channel, text)
+            except:
+                self.print_message("Cannnot send message to bot", '\n')
+            
+           
         return errcode
 
 
