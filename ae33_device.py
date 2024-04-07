@@ -3,7 +3,6 @@
 # pip install openpyxl==3.0.9
 # pip install pyTelegramBotAPI
 
-
 import sys
 import socket
 import time
@@ -14,9 +13,29 @@ import pandas as pd
 import os
 # for bot
 import telebot
-import config
+
+import telebot_config
 
 
+## ----------------------------------------------------------------
+##  
+## ----------------------------------------------------------------
+def select_year_month(datastring):
+    return datastring.split()[0][-4:] + '_' + datastring[3:5]
+
+
+## ----------------------------------------------------------------
+##  
+## ----------------------------------------------------------------
+def get_local_ip():
+    hostname = socket.gethostname()
+    local_ip = socket.gethostbyname(hostname)
+    return hostname, local_ip
+
+
+
+############################################################################
+############################################################################
 class AE33_device:
     def __init__(self):
         self.MINID = 0
@@ -29,6 +48,7 @@ class AE33_device:
         self.mm_D = '0'      ## month for filename of D-file 
         self.pathfile = ''   ## work directory name
         self.xlsfilename = ''      ## exl file name
+        self.csvfilename = ''      ## csv file name
         self.file_raw = None       ## file for raw data
         self.file_format_D = None  ## file for raw data
         self.file_header = ''
@@ -54,6 +74,9 @@ class AE33_device:
         ## --- run functions ---
         #sock = socket.socket()
         self.fill_header() ## to develop data files
+        self.read_config_file()
+        self.print_params()
+        self.prepare_dirs()
 
 
     ## ----------------------------------------------------------------
@@ -61,10 +84,26 @@ class AE33_device:
     ## ----------------------------------------------------------------
     def print_message(self, message, end=''):
         print(message)
-        flog = open(self.logfilename,'a')
-        flog.write(message + end)
-        flog.close()
+        with open(self.logfilename,'a') as flog:
+            flog.write(str(datetime.now()) + ':  ')
+            flog.write(message + end)
 
+
+    ## ----------------------------------------------------------------
+    ##  write message to bot
+    ## ----------------------------------------------------------------
+    def write_to_bot(self, text):
+        try:
+            hostname, local_ip = get_local_ip()
+            text = f"{hostname} ({local_ip}): {text}"
+            
+            bot = telebot.TeleBot(telebot_config.token, parse_mode=None)
+            bot.send_message(telebot_config.channel, text)
+        except Exception as err:
+            ##  напечатать строку ошибки
+            text = f": ERROR in writing to bot: {err}"
+            self.print_message(text)  ## write to log file
+      
 
     ############################################################################
     ############################################################################
@@ -83,20 +122,18 @@ class AE33_device:
 
 
     ############################################################################
-    ## read "PATHFILES.CNF"
+    ## read config file "PATHFILES.CNF"
     ############################################################################
-    def read_path_file(self):
+    def read_config_file(self):
         # check file
-        #print("read file")
         try:
-            f = open("PATHFILES.CNF")
+            #f = open("PATHFILES.CNF")
+            f = open("ae33_config.py")
+            params = [x.replace('\n','') for x in f.readlines() if x[0] != '#']
+            f.close()
         except:
-            print("Error!! No file PATHFILES.CNF\n\n")
+            print("Error!! No config file PATHFILES.CNF\n\n")
             return -1
-
-        params = [x.replace('\n','') for x in f.readlines() if x[0] != '#']
-        f.close()
-        #print(params)
 
         for param in params:
             if "RUN" in param:
@@ -109,42 +146,39 @@ class AE33_device:
                 self.MAXID = self.MINID
             else:
                 self.pathfile = param
-                #print(self.pathfile)
-                if not os.path.isdir(param):
-                    os.makedirs(param)
-                os.system("mkdir " + param)
-                
+                ##  add separator to end of dirname
                 if self.pathfile[-1] != self.sep:
                     print('add sep', self.pathfile)
-                    self.pathfile += self.sep       
+                    self.pathfile += self.sep
+                
 
-                path = self.pathfile + 'raw' + self.sep
-                #path = self.pathfile + 'raw/'
-                #print(path)
-                #os.system("mkdir " + path)
-                if not os.path.isdir(path):
-                    os.makedirs(path)
+    ############################################################################
+    ##  check and create dirs for data 
+    ############################################################################
+    def prepare_dirs(self):
+        if not os.path.isdir(self.pathfile):
+            os.makedirs(self.pathfile)
+        
+        path = self.pathfile + 'raw' + self.sep
+        #print(path)
+        if not os.path.isdir(path):
+            os.makedirs(path)
 
-                #path = self.pathfile + '/ddat/'
-                path = self.pathfile + 'ddat' + self.sep
-                os.system("mkdir " + path)
-                if not os.path.isdir(path):
-                    os.makedirs(path)
+        path = self.pathfile + 'ddat' + self.sep
+        if not os.path.isdir(path):
+            os.makedirs(path)
 
-                #path = self.pathfile + '/table/'
-                path = self.pathfile + 'table' + self.sep
-                os.system("mkdir " + path)
-                if not os.path.isdir(path):
-                    os.makedirs(path)
-
-
-    # \todo ПОПРАВИТЬ в конфигурацилонном файле СЛЕШИ В ИМЕНИ ДИРЕКТОРИИ  !!!   для ВИНДА
+        path = self.pathfile + 'table' + self.sep
+        if not os.path.isdir(path):
+            os.makedirs(path)
 
 
     ############################################################################
     ############################################################################
-    def write_path_file(self):
-        f = open("PATHFILES.CNF.bak", 'w')
+    def write_config_file(self):
+        #f = open("PATHFILES.CNF.bak", 'w')
+        f = open("ae33_config.bak", 'w')
+        f.write(f"ae_name={self.ae_name}\n")
         f.write("#\n# Programm mode:\n")
         f.write("#   1 - for MAIN-menu,  0 - Auto RUN\n")
         f.write("#\n")
@@ -165,17 +199,17 @@ class AE33_device:
     ############################################################################
     ############################################################################
     def print_params(self):
-        print("RUN = ", self.run_mode)
-        print("IP = ", self.IPname)
-        print("Port = ", self.Port)
-        print("pathfile = ", self.pathfile)
-        print("MINID = ", self.MINID)
+        print(f"RUN = ",      self.run_mode)
+        print(f"IP = ",       self.IPname)
+        print(f"Port = ",     self.Port)
+        print(f"pathfile = ", self.pathfile)
+        print(f"MINID = ",    self.MINID)
 
 
     ############################################################################
     ############################################################################
     def connect(self):
-        text = "\n============================================\n" + str(datetime.now()) + '  '
+        text = "\n============================================\n"
         self.print_message(text)
 
         errcode = 0
@@ -194,20 +228,13 @@ class AE33_device:
             text = 'socket connected'
             self.print_message(text, '\n')
             #sock.connect(('localhost', 3000)) 
-        ## \todo проверить, что связь установлена
         except Exception as e:  #TimeoutError:
             errcode = 1
             text = f"Message: error <<{e}>>: AE33 on address {self.IPname} does not responde"
             ## write to logfile
-            logtext = str(datetime.now()) + ' ' + text
-            self.print_message(logtext, '\n')
+            self.print_message(text, '\n')
             ## write to bot
-            try:
-                bot = telebot.TeleBot(config.token, parse_mode=None)
-                bot.send_message(config.channel, text)
-            except:
-                self.print_message("Cannnot send message to bot", '\n')
-            
+            self.write_to_bot(text)
            
         return errcode
 
@@ -254,7 +281,7 @@ class AE33_device:
             if len(buf) == 0:
                 print('not data,  buf lenght=', len(buf), ' attempt=', attempts)
             else:
-                print('qq, read buf(bytes)=',len(buf))
+                print('qq, read buf(bytes)=', len(buf))
                 #print(buf)
 
         if attempts >= 10:
@@ -268,28 +295,17 @@ class AE33_device:
         #print('qq2,  buff2=', len(buff2), buff2)
 
         self.buff = buff2[0]
-        #if "HELLO" in command:
-            #self.buff = buff2[1]
-        #else:
-            #self.buff = buff2[0]
-
-        #print('qqqq3,  self.buff=', len(self.buff))
-        #print(self.buff)
-        #self.buff = self.buff.split("AE33>")
-        #print(self.buff)
-
 
         ### --- operate with command
         if "HELLO" in command:
             self.extract_device_name()
         if "MAXID" in command:
             self.MAXID = int(self.buff)
-            print(self.MAXID)
+            print(f"MAXID = {self.MAXID}")
         if "MINID" in command:
             #self.buff = self.buff.split("AE33>")
-            #print(self.buff)
             self.MINID = int(self.buff)
-            print(self.MINID)
+            print(f"MINID = {self.MINID}")
         if '?' in command:
             self.info = self.buff
         if "FETCH" in command:
@@ -300,7 +316,8 @@ class AE33_device:
                 self.parse_raw_data()
                 i += 1
         if "AE33" in command:
-            if "AE33:D":
+            if "AE33:D" in command:
+                print("'AE33:D' in command")
                 self.parse_format_D_data()
         #    if "AE33:W":
         #        self.parse_format_W_data()
@@ -317,7 +334,6 @@ class AE33_device:
         self.print_message(text, '\n')
 
 
-
     ############################################################################
     ############################################################################
     def parse_raw_data(self):
@@ -327,39 +343,19 @@ class AE33_device:
         self.buff = self.buff.replace("AE33>","")
         print(self.buff)
 
-##        for line in self.buff:
-##          #  print('line = ',line)
-##            #if len(line) < 50:
-##             #   continue
-##            print('line = ',line)
-##            mm, dd, yy = line.split("|")[2][:10].split('/')
-##            #mm, dd, yy = self.buff.split("|")[2][:10].split('/')
-##            print('m, dd, yy = ',mm,dd,yy)
-##            if mm != self.mm or yy != self.yy:
-##                filename = '_'.join((yy, mm)) + '_AE33-S08-01006.raw'
-##                filename = self.pathfile +'\\raw\\' + filename
-##                print(filename)
-##                if self.file_raw:
-##                    self.file_raw.close()
-##                self.file_raw = open(filename, "a")
-##            self.file_raw.write(self.buff+'\n')
-##            #self.file_raw.write('\n')
-
-
         #mm, dd, yy = self.buff.split("|")[2][:10].split('/')
         mm, dd, yy = self.buff.split("|")[2].split(" ")[0].split('/')
         print('m, dd, yy = ',mm,dd,yy)
         if mm != self.mm or yy != self.yy:
             filename = '_'.join((yy, mm)) + '_AE33-S08-01006.raw'
             #filename = self.pathfile +'\\raw\\' + filename
-            filename = self.pathfile +'/raw/' + filename
+            filename = self.pathfile + self.sep + 'raw' + self.sep + filename
             print(filename)
             if self.file_raw:
                 self.file_raw.close()
             self.file_raw = open(filename, "a")
         self.file_raw.write(self.buff+'\n')
             #self.file_raw.write('\n')
-
 
         self.file_raw.flush()
         self.mm = mm
@@ -404,7 +400,7 @@ class AE33_device:
             if mm != lastmm or yy != lastyy:
                 ##### ddat file 
                 filename = '_'.join((yy, mm)) + '_AE33-S08-01006.wdat'
-                filename = self.pathfile +'\wdat\\' + filename
+                filename = self.pathfile + self.sep + 'wdat' + self.sep + filename
                 print(filename,mm,yy,lastmm,lastyy)
                 try:
                     ## ddat file exists
@@ -453,39 +449,8 @@ class AE33_device:
             need_check = False
 
             ## write to file
-            f = open(filename, 'a')
-            f.write(line+'\n')
-            f.close()
-
-
-##        ## ##### write dataframe to excel file
-##        ## make dataFrame from list
-##        excel_columns = ['Date', 'Time (Moscow)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6',
-##            'BC7', 'BB (%)', 'BCbb', 'BCff', 'Date.1', 'Time (Moscow).1']
-##        dataframe_from_buffer = pd.DataFrame(rows_list, columns=excel_columns[:-4])
-##        ## add columns
-##        dataframe_from_buffer['BCbb'] = dataframe_from_buffer['BB (%)'].astype(float) * dataframe_from_buffer['BC5'].astype(float) / 100
-##        dataframe_from_buffer['BCff'] = (100 - dataframe_from_buffer['BB (%)'].astype(float)) / 100 *  dataframe_from_buffer['BC5'].astype(float)
-##        dataframe_from_buffer['Date.1'] = dataframe_from_buffer['Date']
-##        dataframe_from_buffer['Time (Moscow).1'] = dataframe_from_buffer['Time (Moscow)']
-##        print(dataframe_from_buffer.head())
-##
-##        ##### excel file #####
-##        xlsfilename = yy + '_AE33-S08-01006.xlsx'
-##        xlsfilename = self.pathfile + 'tableW/' + xlsfilename
-##        self.xlsfilename = xlsfilename
-##        ## read or cleate datafame
-##        xlsdata = self.read_dataframe_from_excel_file(xlsfilename)
-##        print(xlsdata.head())
-##        if xlsdata.shape[0]:
-##            dropset = ['Date', 'Time (Moscow)']
-##            xlsdata = xlsdata.append(dataframe_from_buffer, ignore_index=True).drop_duplicates(subset=dropset, keep='last')
-##            #print("Append:", xlsdata)
-##            xlsdata.set_index('Date').to_excel(xlsfilename, engine='openpyxl')
-##        else:
-##            print("New data:")
-##            dataframe_from_buffer.set_index('Date').to_excel(xlsfilename, engine='openpyxl')
-##            #dataframe_from_buffer.to_excel(xlsfilename, engine='openpyxl')
+            with open(filename, 'a') as f:
+                f.write(line+'\n')
 
 
     ############################################################################
@@ -532,7 +497,7 @@ class AE33_device:
                 #filename = '_'.join((yy, mm)) + "_" + 'AE33-S08-01006.ddat'
                 filename = '_'.join((yy, mm)) + "_" + self.ae_name + '.ddat'
                 if self.pathfile[-1] != self.sep:
-                    self.pathfile = self.pathfile + self.sep
+                    self.pathfile += self.sep
                 filename = self.pathfile + 'ddat' + self.sep + filename
                 print(filename,mm,yy,lastmm,lastyy)
                 try:
@@ -548,10 +513,9 @@ class AE33_device:
                     need_check = True
                 except:
                     ## no file: create new file and write header
-                    f = open(filename, 'a')
-                    f.write(self.file_header.replace("BB(%)", "BB (%)"))
-                    f.close()
-                    text = 'NOT FILE' + filename + "found. New file created."
+                    with open(filename, 'a') as f:
+                        f.write(self.file_header.replace("BB(%)", "BB (%)"))
+                    text = f"New {filename} file created."
                     self.print_message(text, '\n')
                     lastline = []
                     need_check = False
@@ -597,7 +561,6 @@ class AE33_device:
                 + dataframe_from_buffer['Time(hh:mm:ss)'].apply(lambda x: ':'.join(x.split(':')[:2]))
 
         ## --- save fo excel
-        #print("write_dataframe_to_excel_file")
         self.write_dataframe_to_excel_file(dataframe_from_buffer[self.xlscolumns])
 
 
@@ -608,12 +571,14 @@ class AE33_device:
     ############################################################################
     def write_dataframe_to_excel_file(self, dataframe):
         """ write dataframe to excel file """
-        print("write_dataframe_to_excel_file")
+        print("write_dataframe_to_data_files")
         
         ## add columns
-        dataframe.loc[:,'BCbb'] = dataframe.loc[:,'BB(%)'].astype(float) / 100 \
-                                * dataframe.loc[:,'BC5'].astype(float)
+        #dataframe.loc[:,'BCbb'] = dataframe.loc[:,'BB(%)'].astype(float) / 100 \
+        #                        * dataframe.loc[:,'BC5'].astype(float)
         dataframe['BCff'] = (100 - dataframe['BB(%)'][:].astype(float)) / 100 \
+                                * dataframe['BC5'][:].astype(float)
+        dataframe['BCbb'] = dataframe['BB(%)'][:].astype(float) / 100 \
                                 * dataframe['BC5'][:].astype(float)
 
         #### extract year and month from data
@@ -632,6 +597,7 @@ class AE33_device:
             filenamexls = table_dirname + ym_pattern + '_' + self.ae_name + ".xlsx"
             filenamecsv = table_dirname + ym_pattern + '_' + self.ae_name + ".csv"
             self.xlsfilename = filenamexls
+            self.csvfilename = filenamecsv
 
             ## отфильтровать строки за нужный месяц и год
             dfsave = dataframe[dataframe['Datetime'].apply(select_year_month) == ym_pattern]
@@ -641,21 +607,18 @@ class AE33_device:
 
             ##### try to open excel file #####
             ## read or create datafame
-            xlsdata = self.read_dataframe_from_excel_file(filenamexls)
-            if xlsdata.shape[0]:  ## data was read from file
-                dfsave = pd.concat([xlsdata, dfsave], ignore_index=True)\
+            #xlsdata = self.read_dataframe_from_excel_file(filenamexls)
+            csvdata = self.read_dataframe_from_csv_file(filenamecsv)
+            if csvdata.shape[0]:  ## data was read from file
+                dfsave = pd.concat([csvdata, dfsave], ignore_index=True)\
                         .drop_duplicates(subset=['Datetime'])\
                         .sort_values(by=['Datetime'])
-                if xlsdata.shape[0] == dfsave.shape[0]:
+                if csvdata.shape[0] == dfsave.shape[0]:
                     text = f"No new data received from {self.ae_name}"
-                    try:
-                        bot = telebot.TeleBot(config.token, parse_mode=None)
-                        bot.send_message(config.channel, text)
-                    except:
-                        self.print_message("Cannnot send message to bot", '\n')
+                    self.write_to_bot(text)                    
                     self.print_message(text, '\n')
                     return 1
-                text = str(xlsdata.shape[0]) + " lines was read from excel file"
+                text = str(csvdata.shape[0]) + " lines was read from excel file"
                 self.print_message(text, '\n')
             ## no data was read - no file was opened
             elif os.path.isfile(filenamexls): ## if file exists, but not read
@@ -667,13 +630,51 @@ class AE33_device:
                 text = "Data file " + filenamexls + " created."
                 self.print_message(text, '\n')
             else:
-                text = "else: " + filenamexls + str(os.path.isfile(filenamexls))
+                text = f"New file {filenamexls} + {str(os.path.isfile(filenamexls))}" 
+                self.print_message(text, '\n')
+                text = f"New {filenamexls} created"
+                self.write_to_bot(text)
+                
+
+            print(f"write to {filenamecsv}")
+            dfsave.set_index('Datetime').to_csv(filenamecsv)
+            print(f"write to {filenamexls}")
+            dfsave.set_index('Datetime').to_excel(filenamexls, engine='openpyxl')
+            return 0
+
+
+
+    ############################################################################
+    ############################################################################
+    def read_dataframe_from_csv_file(self, csvfilename): ## xlsfilename
+        #columns = ['Date', 'Time (Moscow)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6',
+        #    'BC7', 'BB(%)', 'BCbb', 'BCff', 'Date.1', 'Time (Moscow).1']
+        columns = self.xlscolumns
+        create_new = False
+
+        try:
+            ## read csv file to dataframe
+            datum = pd.read_csv(csvfilename)
+            #print(datum)
+            print(csvfilename, "read, df: ", datum.shape)
+            print(datum.head(2))
+            if datum.shape[1] != len(columns) + 2:
+                text = f"WARNING!!! File {csvfilename} has old format, is ignoring!!!"
                 self.print_message(text, '\n')
 
+                point = csvfilename.rfind('.')
+                os.rename(csvfilename, csvfilename[:point] + "_old" +  csvfilename[point:])
+                create_new = True
+        except:
+            create_new = True
 
-            dfsave.set_index('Datetime').to_excel(filenamexls, engine='openpyxl')
-            dfsave.set_index('Datetime').to_csv(filenamecsv)
-            return 0
+        if create_new:
+            # create new dummy dataframe
+            datum = pd.DataFrame(columns=columns)
+            text = "Can not open file: " + csvfilename + "  Empty dummy dataframe created"
+            self.print_message(text, '\n')
+
+        return datum
 
 
     ############################################################################
@@ -744,7 +745,8 @@ class AE33_device:
         columns = self.head.split("; ")[:-1] + [str(i) for i in range(1, 10)]
         #print(columns)
         #print(len(columns), end=' ')
-        datum = pd.read_csv(filename, sep='\s+', on_bad_lines='warn', 
+        print(filename)
+        datum = pd.read_csv(filename, sep="\s+", on_bad_lines='warn', 
                             skiprows=8,  skip_blank_lines=True,
                             index_col=None, names=columns, 
                             encoding='windows-1252')
@@ -846,7 +848,6 @@ class AE33_device:
         plt.legend()
         plt.grid()
         plt.savefig('Moscow_bb.png', bbox_inches='tight')
-
 
 
 
