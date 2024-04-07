@@ -56,7 +56,9 @@ class AE33_device:
         self.ae_name = ''    ## 'AE33-S09-01249' # 'AE33-S08-01006'
 
         self.run_mode = 0
+        self.logdirname = ""
         self.logfilename = "ae33_log.txt"  ## file to write log messages
+
 
         self.buff = ''
         self.info = ''
@@ -77,6 +79,9 @@ class AE33_device:
         self.read_config_file()
         self.print_params()
         self.prepare_dirs()
+        
+        #self.logfilename = self.logdirname + "_".join(["_".join(str(datetime.now()).split('-')[:2]), self.ae_name,  'log.txt'])
+        #self.logfilename =  + ym_pattern + '_' + self.ae_name + "log.txt"
 
 
     ## ----------------------------------------------------------------
@@ -84,6 +89,7 @@ class AE33_device:
     ## ----------------------------------------------------------------
     def print_message(self, message, end=''):
         print(message)
+        self.logfilename = self.logdirname + "_".join(["_".join(str(datetime.now()).split('-')[:2]), self.ae_name,  'log.txt'])
         with open(self.logfilename,'a') as flog:
             flog.write(str(datetime.now()) + ':  ')
             flog.write(message + end)
@@ -171,6 +177,11 @@ class AE33_device:
         path = self.pathfile + 'table' + self.sep
         if not os.path.isdir(path):
             os.makedirs(path)
+
+        path = self.pathfile + 'log' + self.sep
+        if not os.path.isdir(path):
+            os.makedirs(path)
+        self.logdirname = path
 
 
     ############################################################################
@@ -295,6 +306,7 @@ class AE33_device:
             buff2 = buff2.split("\r\nAE33>")
         elif "AE43" in buff2:
             buff2 = buff2.split("\r\nAE43>")
+        #buff2 = buff2.split("\r\nAE33>")
         #print('qq2,  buff2=', len(buff2), buff2)
 
         self.buff = buff2[0]
