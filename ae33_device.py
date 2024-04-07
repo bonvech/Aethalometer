@@ -291,7 +291,10 @@ class AE33_device:
 
         ## --- parse buffer
         buff2 = buf.decode("UTF-8")
-        buff2 = buff2.split("\r\nAE33>")
+        if   "AE33" in buff2:
+            buff2 = buff2.split("\r\nAE33>")
+        elif "AE43" in buff2:
+            buff2 = buff2.split("\r\nAE43>")
         #print('qq2,  buff2=', len(buff2), buff2)
 
         self.buff = buff2[0]
