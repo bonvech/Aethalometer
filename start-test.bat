@@ -1,6 +1,7 @@
 echo
+
 d:
-cd  \AK\AE33-S09\
+cd D:\AK\AE43-S01
 
 python ae33_main.py 
 pause

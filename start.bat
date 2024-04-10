@@ -1,8 +1,7 @@
 echo
 
 d:
-cd \AK\AE33-S09\
+cd \AK\AE43-S01\
+
 start /min python ae33_main.py 
-
 rem pause
-
