@@ -46,7 +46,7 @@ class AE33_device:
         self.mm = '0'        ## month for filename of raw file
         self.yy_D = '0'      ##  year for filename of D-file
         self.mm_D = '0'      ## month for filename of D-file 
-        self.pathfile = ''   ## work directory name
+        self.datadir = ''   ## work directory name
         self.xlsfilename = ''      ## exl file name
         self.csvfilename = ''      ## csv file name
         self.file_raw = None       ## file for raw data
@@ -109,7 +109,7 @@ class AE33_device:
             ##  напечатать строку ошибки
             text = f": ERROR in writing to bot: {err}"
             self.print_message(text)  ## write to log file
-      
+
 
     ############################################################################
     ############################################################################
@@ -128,9 +128,43 @@ class AE33_device:
 
 
     ############################################################################
-    ## read config file "PATHFILES.CNF"
+    ## read config file
     ############################################################################
     def read_config_file(self):
+        # read file
+        try:
+            import ae33_config as config
+        except Exception as err:
+            ##  напечатать строку ошибки
+            text = f": ERROR in reading config: {err}"
+            print(text)
+            print(f"\n!!! read_config_file Error!! Check configuration file 'ae33_config' in  \n\n")
+            return -1
+            
+        
+        self.IPname = config.IP
+        self.Port   = config.Port
+        self.MINID  = config.MINID
+        self.MAXID  = config.MINID
+        
+        self.datadir = config.Datadir.strip()
+        self.datadir = self.sep.join(self.datadir.split("/"))
+        ##  add separator to end of dirname
+        if self.datadir[-1] != self.sep:
+            #print('add sep', self.datadir)
+            self.datadir += self.sep
+        
+        if not self.ae_name:        
+            self.ae_name = config.ae_name
+            self.fill_header()
+
+        self.write_config_file()
+
+
+    ############################################################################
+    ## read config file "PATHFILES.CNF"
+    ############################################################################
+    def read_path_file(self):
         # check file
         try:
             #f = open("PATHFILES.CNF")
@@ -151,34 +185,34 @@ class AE33_device:
                 self.MINID = int(param.split('=')[1])
                 self.MAXID = self.MINID
             else:
-                self.pathfile = param
+                self.datadir = param
                 ##  add separator to end of dirname
-                if self.pathfile[-1] != self.sep:
-                    print('add sep', self.pathfile)
-                    self.pathfile += self.sep
+                if self.datadir[-1] != self.sep:
+                    print('add sep', self.datadir)
+                    self.datadir += self.sep
                 
 
     ############################################################################
     ##  check and create dirs for data 
     ############################################################################
     def prepare_dirs(self):
-        if not os.path.isdir(self.pathfile):
-            os.makedirs(self.pathfile)
+        if not os.path.isdir(self.datadir):
+            os.makedirs(self.datadir)
         
-        path = self.pathfile + 'raw' + self.sep
+        path = self.datadir + 'raw' + self.sep
         #print(path)
         if not os.path.isdir(path):
             os.makedirs(path)
 
-        path = self.pathfile + 'ddat' + self.sep
+        path = self.datadir + 'ddat' + self.sep
         if not os.path.isdir(path):
             os.makedirs(path)
 
-        path = self.pathfile + 'table' + self.sep
+        path = self.datadir + 'table' + self.sep
         if not os.path.isdir(path):
             os.makedirs(path)
 
-        path = self.pathfile + 'log' + self.sep
+        path = self.datadir + 'log' + self.sep
         if not os.path.isdir(path):
             os.makedirs(path)
         self.logdirname = path
@@ -189,31 +223,27 @@ class AE33_device:
     def write_config_file(self):
         #f = open("PATHFILES.CNF.bak", 'w')
         f = open("ae33_config.bak", 'w')
-        f.write(f"ae_name={self.ae_name}\n")
-        f.write("#\n# Programm mode:\n")
-        f.write("#   1 - for MAIN-menu,  0 - Auto RUN\n")
-        f.write("#\n")
-        f.write("RUN=" + str(self.run_mode) + "\n")
-        f.write("#\n# Directory for DATA:\n")
-        f.write("#\n")
-        f.write(self.pathfile + '\n')
-        f.write("#\n# AE33:   IP address and Port:\n")
-        f.write("#\n")
-        f.write("IP=" + self.IPname + '  ' + str(self.Port) +"\n")
-        f.write("#\n# AE33:  Last Records:\n")
-        f.write("#\n")
-        f.write("MINID=" + str(self.MAXID) + "\n")
-        f.write("#\n")
+        f.write(f'#\n Device name')
+        f.write(f'ae_name= "{self.ae_name}"\n')
+        f.write( "#\n# Directory for DATA:\n#\n")
+        f.write(f'Datadir = "{self.datadir}"\n')
+        f.write( "#\n# AE33:   IP address and Port:\n#\n")
+        f.write(f'IP = "{self.IPname}"\n') 
+        f.write(f"Port = {self.Port}\n")
+        f.write( "#\n# AE33:  Last Records:\n#\n")
+        f.write(f"MINID = {self.MAXID}\n")
+        f.write( "#\n")
         f.close()
 
 
     ############################################################################
     ############################################################################
     def print_params(self):
-        print(f"RUN = ",      self.run_mode)
+        #print(f"RUN = ",      self.run_mode)
+        print(f"ae_name = ",  self.ae_name)
         print(f"IP = ",       self.IPname)
         print(f"Port = ",     self.Port)
-        print(f"pathfile = ", self.pathfile)
+        print(f"datadir = ",  self.datadir)
         print(f"MINID = ",    self.MINID)
 
 
@@ -241,7 +271,7 @@ class AE33_device:
             #sock.connect(('localhost', 3000)) 
         except Exception as e:  #TimeoutError:
             errcode = 1
-            text = f"Message: error <<{e}>>: AE33 on address {self.IPname} does not responde"
+            text = f"Message: error <<{e}>>: {self.ae_name} on address {self.IPname} does not responde"
             ## write to logfile
             self.print_message(text, '\n')
             ## write to bot
@@ -347,6 +377,7 @@ class AE33_device:
         self.ae_name = [x.split()[2] for x in buff if "serialnumb" in x][0]
         text = f'Device name: {self.ae_name}'
         self.print_message(text, '\n')
+        self.fill_header()
 
 
     ############################################################################
@@ -362,9 +393,7 @@ class AE33_device:
         mm, dd, yy = self.buff.split("|")[2].split(" ")[0].split('/')
         print('m, dd, yy = ',mm,dd,yy)
         if mm != self.mm or yy != self.yy:
-            filename = '_'.join((yy, mm)) + '_AE33-S08-01006.raw'
-            #filename = self.pathfile +'\\raw\\' + filename
-            filename = self.pathfile + self.sep + 'raw' + self.sep + filename
+            filename = self.datadir + self.sep + 'raw' + self.sep + filename
             print(filename)
             if self.file_raw:
                 self.file_raw.close()
@@ -415,7 +444,7 @@ class AE33_device:
             if mm != lastmm or yy != lastyy:
                 ##### ddat file 
                 filename = '_'.join((yy, mm)) + '_AE33-S08-01006.wdat'
-                filename = self.pathfile + self.sep + 'wdat' + self.sep + filename
+                filename = self.datadir + self.sep + 'wdat' + self.sep + filename
                 print(filename,mm,yy,lastmm,lastyy)
                 try:
                     ## ddat file exists
@@ -511,9 +540,9 @@ class AE33_device:
                 ## -- ddat filename 
                 #filename = '_'.join((yy, mm)) + "_" + 'AE33-S08-01006.ddat'
                 filename = '_'.join((yy, mm)) + "_" + self.ae_name + '.ddat'
-                if self.pathfile[-1] != self.sep:
-                    self.pathfile += self.sep
-                filename = self.pathfile + 'ddat' + self.sep + filename
+                if self.datadir[-1] != self.sep:
+                    self.datadir += self.sep
+                filename = self.datadir + 'ddat' + self.sep + filename
                 print(filename,mm,yy,lastmm,lastyy)
                 try:
                     ## ddat file exists: read last line datetime
@@ -600,7 +629,7 @@ class AE33_device:
         year_month = dataframe['Datetime'].apply(select_year_month).unique()
 
         ### prepare directory
-        table_dirname = self.pathfile + 'table' + self.sep
+        table_dirname = self.datadir + 'table' + self.sep
         print("table_dirname:", table_dirname)
         if not os.path.isdir(table_dirname):
             os.makedirs(table_dirname)
@@ -748,12 +777,14 @@ class AE33_device:
             print("standard header:\n", self.head[:-4])
 
         ## --- check device name
-        current_ae_name = [x.split()[-1] for x in header if 'AE33' in x][0]
+        current_ae_name = [x.split()[-1] for x in header if 'AE' in x][0]
         if self.ae_name == '':
             self.ae_name = current_ae_name
         if self.ae_name != current_ae_name:
             print("Current device has different name:", current_ae_name)
+            self.ae_name = current_ae_name
         #print(self.ae_name)
+        self.fill_header()
 
 
         ## --- read data
