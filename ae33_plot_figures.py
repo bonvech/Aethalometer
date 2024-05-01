@@ -111,7 +111,9 @@ def prepare_data(xlsfilename):
     if x.min() + pd.to_timedelta("336:00:00") > x.max():
         print("Data file has less than 2 week data")
         olddata = get_data_from_previous_month(xlsfilename)
-        if olddata:
+        print(olddata)
+        print(type(None))
+        if type(olddata):
             data = pd.concat([olddata, data], ignore_index=True)
         #print(f"joined data: {data.shape}\n", data.head())
         ## make column to plot on x axis
