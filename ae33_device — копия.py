@@ -101,7 +101,7 @@ class AE33_device:
     def write_to_bot(self, text):
         try:
             hostname, local_ip = get_local_ip()
-            text = f"{hostname} ({local_ip}): {self.ae_name}: {text}"
+            text = f"{hostname} ({local_ip}): {text}"
             
             bot = telebot.TeleBot(telebot_config.token, parse_mode=None)
             bot.send_message(telebot_config.channel, text)
@@ -386,21 +386,20 @@ class AE33_device:
         print('raw data:  ')
         if len(self.buff) < 10:
             return
-            
         self.buff = self.buff.replace("AE33>","")
         print(self.buff)
 
-
+        #mm, dd, yy = self.buff.split("|")[2][:10].split('/')
         mm, dd, yy = self.buff.split("|")[2].split(" ")[0].split('/')
-        print('m, dd, yy = ', mm,dd,yy)
+        print('m, dd, yy = ',mm,dd,yy)
         if mm != self.mm or yy != self.yy:
             filename = self.datadir + self.sep + 'raw' + self.sep + filename
             print(filename)
             if self.file_raw:
                 self.file_raw.close()
             self.file_raw = open(filename, "a")
-        self.file_raw.write(self.buff + '\n')
-        #self.file_raw.write('\n')
+        self.file_raw.write(self.buff+'\n')
+            #self.file_raw.write('\n')
 
         self.file_raw.flush()
         self.mm = mm
@@ -525,7 +524,7 @@ class AE33_device:
             self.fill_header()
         header = self.file_header[self.file_header.find("Date"):].split("; ")
         #columns = ['Date(yyyy/MM/dd)', 'Time(hh:mm:ss)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6', 'BC7', 'BB (%)']
-        columns = ['Date(yyyy/MM/dd)', 'Time(hh:mm:ss)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6', 'BC7', 'BB(%)', "Status"]
+        columns = ['Date(yyyy/MM/dd)', 'Time(hh:mm:ss)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6', 'BC7', 'BB(%)']
         colnums = [header.index(x) for x in columns]
         rows_list = []
 
@@ -571,11 +570,11 @@ class AE33_device:
             line_to_dataframe = [line.split()[i] for i in colnums]
             #print("line_to_dataframe:>",line_to_dataframe)
             line_to_dataframe = line_to_dataframe[:2]\
-                                + [int(x) for x in line_to_dataframe[2:-2]]\
-                                + [float(line_to_dataframe[-2])]\
-                                + [int(line_to_dataframe[-1])]
+                                + [int(x) for x in line_to_dataframe[2:-1]]\
+                                + [float(line_to_dataframe[-1])]
             rows_list.append(line_to_dataframe)
             #print(rows_list)
+
 
             ## check line to be added to datafile
             if need_check: # and len(lastline):
@@ -596,9 +595,10 @@ class AE33_device:
             f.close()
         ## ---- end of write from buffer to ddat file --- ##
  
+ 
         print("make dataframe_from_buffer")
-        dataframe_from_buffer = pd.DataFrame(rows_list, columns=columns)     
-        
+        dataframe_from_buffer = pd.DataFrame(rows_list, columns=columns)
+
         ## reformat datetime string
         dataframe_from_buffer['Datetime'] = dataframe_from_buffer['Date(yyyy/MM/dd)'].apply(lambda x: ".".join(x.split('/')[::-1])) \
                 + ' ' \
@@ -606,19 +606,6 @@ class AE33_device:
 
         ## --- save fo excel
         self.write_dataframe_to_excel_file(dataframe_from_buffer[self.xlscolumns])
-
-        ## Check status errors
-        status = dataframe_from_buffer["Status"].unique().tolist()
-        errors = []
-        for i in status:    
-            for error in parse_errors(i):
-                errors.append(error)
-        errors = sorted(list(set(errors)), key=lambda x: int(x.split("(")[1].split(")")[0]))
-        errors = "".join(errors)
-        
-        if errors:
-            self.write_to_bot(errors)
-        print("Status:", errors)
 
 
     ############################################################################
@@ -916,86 +903,3 @@ def select_year_month(datastring):
     return "_".join([x for x in datastring.split()[0].split('.')[2:0:-1]])
     #return "_".join([x for x in datastring.split()[0].split('/')[:2]])
     #return datastring.split('/')[0] + '_' + datastring.split('/')[1]
-
-
-############################################################################
-############################################################################
-##  Parse status errors
-def parse_errors(error):
-
-    errors = []
-
-    ## Статус эксплуатации
-    if error & 1 and error & 2:
-        errors.append(f"Error Status(3). Остановка. Прибор не работает!\n") 
-    elif error & 1:
-        errors.append(f"Error Status(1). Протягивание ленты (обычное продвижение ленты, быстрая калибровка, прогрев).\n")
-    elif error & 2:
-        errors.append(f"Error Status(2). Первое измерение – получение ATN0.\n")
-    
-    ## Статус расход
-    if error & 4 and error & 8:
-        errors.append(f"Error Status(12). Расход низкий/высокий и историю состояния расхода.\n")
-    elif error & 4:
-        errors.append(f"Error Status(4). Расход меньше/выше, чем на 0.5 л/мин или F1<0 или отношение F2/F1 за пределом диапазона 0.2 – 0.75.\n")
-    elif error & 8:
-        errors.append(f"Error Status(8). Проверьте историю состояния расхода.\n")
-
-    ## Статус Источник излучения
-    if error & 16 and error & 32:
-        errors.append(f"Error Status(48). Сбой в работе светодиодов (сбой по всем каналам).\n")
-    elif error & 16:
-        errors.append(f"Error Status(16). Калибровка светодиодов.\n")
-    elif error & 32:
-        errors.append(f"Error Status(32). Сбой калибровки (по крайней мере один из каналов в норме).\n")
-
-    ## Статус Измерительная камера
-    if error & 64:
-        errors.append(f"Error Status(64). Сбой в измерительной камере.\n")
-
-    ## Статус Фильтрующая лента
-    if error & 128 and error & 256:
-        errors.append(f"Error Status(384). Сбой ленты (лента не движется, лента закончилась).\n")
-    elif error & 128:
-        errors.append(f"Error Status(128). Предупреждение (осталось менее 30 спотов).\n")
-    elif error & 256:
-        errors.append(f"Error Status(256). Последнее предупреждение (осталось менее 5 спотов).\n")
-
-    ## Установочный файл
-    if error & 512:
-        errors.append(f"Error Status(512). Предупреждение по установочному файлу.\n")
-
-    ## Испытания и процедуры 10, 11, 12 биты
-    if error & 2048 and error & 1024:
-        errors.append(f"Error Status(3072). Процедура замены ленты.\n")
-    elif error & 2048 and error & 4096:
-        errors.append(f"Error Status(6144). Тест на утечки.\n")
-    elif error & 1024:
-        errors.append(f"Error Status(1024). Испытание на устойчивость.\n")
-    elif error & 2048:
-        errors.append(f"Error Status(2048). Продувка чистым воздухом.\n")
-    elif error & 4096:
-        errors.append(f"Error Status(4096). Испытание оптической системы.\n")
-
-    ## Внешние устройства
-    if error & 8192:
-        errors.append(f"Error Status(8192). Сбой в соединении внешних устройств.\n")
-
-    ## Авто-испытание «нуль»-воздуха
-    if error & 16384:
-        errors.append(f"Error Status(16384). Результат проверки «нуль-воздуха» неприемлем; рекомендуется сервисное обслуживание прибора.\n")
-    ## Сбой карты
-    if error & 32768:
-        errors.append(f"Error Status(32768). Сбой при сохранении или восстановлении файлов при работе с CF-картой.\n")
-    
-    ## Состояние базы данных
-    if error >= 65535:
-        errors.append(f"Error Status(65535). Размер базы данных превышает 2*106 строк.\n")
-
-    ## Вернуть ошибки
-    if errors:
-        return errors
-    return []
-
-
-## print(parse_errors(879706))
