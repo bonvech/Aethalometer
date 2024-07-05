@@ -502,7 +502,7 @@ class AE33_device:
     ## write to ddat data
     ############################################################################
     def parse_format_D_data(self):
-        ## main
+        ##  main
         if len(self.buff) < 10:
             return
 
@@ -520,7 +520,7 @@ class AE33_device:
         #print('lines:')
         #print(self.buff)
 
-        ## --- for excel data
+        ##  --- for excel data
         if self.file_header == '':
             self.fill_header()
         header = self.file_header[self.file_header.find("Date"):].split("; ")
@@ -530,13 +530,13 @@ class AE33_device:
         rows_list = []
 
 
-        ## ---- write from buffer to ddat file --- ##
+        ##  ---- write from buffer to ddat file --- ##
         for line in self.buff[::-1]:
             #print('line:   ',line)
             yy, mm, _ = line.split()[0].split('/')
             #print(yy, mm)
 
-            ## --- for first line or new file
+            ##  --- for first line or new file
             if mm != lastmm or yy != lastyy:
                 ## -- ddat filename 
                 #filename = '_'.join((yy, mm)) + "_" + 'AE33-S08-01006.ddat'
@@ -567,7 +567,7 @@ class AE33_device:
                 lastmm = mm
                 lastyy = yy
 
-            ## add line data to dataframe 
+            ##  add line data to dataframe 
             line_to_dataframe = [line.split()[i] for i in colnums]
             #print("line_to_dataframe:>",line_to_dataframe)
             line_to_dataframe = line_to_dataframe[:2]\
@@ -577,7 +577,7 @@ class AE33_device:
             rows_list.append(line_to_dataframe)
             #print(rows_list)
 
-            ## check line to be added to datafile
+            ##  check line to be added to datafile
             if need_check: # and len(lastline):
                 #print(line)
                 nowtime  = line.split()[0] + ' ' + line.split()[1]
@@ -590,25 +590,26 @@ class AE33_device:
 
             need_check = False
 
-            ## write to ddat file
+            ##  write to ddat file
             f = open(filename, 'a')
             f.write(line+'\n')
             f.close()
-        ## ---- end of write from buffer to ddat file --- ##
+        ##  ---- end of write from buffer to ddat file --- ##
  
         print("make dataframe_from_buffer")
         dataframe_from_buffer = pd.DataFrame(rows_list, columns=columns)     
         
-        ## reformat datetime string
+        ##  reformat datetime string
         dataframe_from_buffer['Datetime'] = dataframe_from_buffer['Date(yyyy/MM/dd)'].apply(lambda x: ".".join(x.split('/')[::-1])) \
                 + ' ' \
                 + dataframe_from_buffer['Time(hh:mm:ss)'].apply(lambda x: ':'.join(x.split(':')[:2]))
 
-        ## --- save fo excel
-        self.write_dataframe_to_excel_file(dataframe_from_buffer[self.xlscolumns])
-
-        ## Check status errors
-        status = dataframe_from_buffer["Status"].unique().tolist()
+        ## 
+        ##  Check status errors
+        #status = dataframe_from_buffer["Status"].unique().tolist()
+        status = dataframe_from_buffer["Status"][-60:].unique().tolist()
+        #print("Status:", status)
+        #print(dataframe_from_buffer[-60:])
         errors = []
         for i in status:    
             for error in parse_errors(i):
@@ -619,6 +620,9 @@ class AE33_device:
         if errors:
             self.write_to_bot(errors)
         print("Status:", errors)
+
+        ## --- save fo excel
+        self.write_dataframe_to_excel_file(dataframe_from_buffer[self.xlscolumns])
 
 
     ############################################################################
@@ -929,9 +933,9 @@ def parse_errors(error):
     if error & 1 and error & 2:
         errors.append(f"Error Status(3). Остановка. Прибор не работает!\n") 
     elif error & 1:
-        errors.append(f"Error Status(1). Протягивание ленты (обычное продвижение ленты, быстрая калибровка, прогрев).\n")
+        errors.append(f"Status(1). Протягивание ленты (обычное продвижение ленты, быстрая калибровка, прогрев).\n")
     elif error & 2:
-        errors.append(f"Error Status(2). Первое измерение – получение ATN0.\n")
+        errors.append(f"Status(2). Первое измерение – получение ATN0.\n")
     
     ## Статус расход
     if error & 4 and error & 8:
