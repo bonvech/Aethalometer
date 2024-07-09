@@ -614,7 +614,10 @@ class AE33_device:
         for i in status:    
             for error in parse_errors(i):
                 errors.append(error)
-        errors = sorted(list(set(errors)), key=lambda x: int(x.split("(")[1].split(")")[0]))
+        errors = sorted(list(set(errors)), 
+                        reverse=True, 
+                        key=lambda x: int(x.split("(")[1].split(")")[0])
+                       )
         errors = "".join(errors)
         
         if errors:
