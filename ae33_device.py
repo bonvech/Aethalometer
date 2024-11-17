@@ -40,6 +40,7 @@ class AE33_device:
     def __init__(self):
         self.MINID = 0
         self.MAXID = 0
+        self.leftspots = -1 ## -1 - many spots left, no warning will appear
 
         ## for data files
         self.yy = '0'        ##  year for filename of raw file
@@ -605,7 +606,7 @@ class AE33_device:
                 + dataframe_from_buffer['Time(hh:mm:ss)'].apply(lambda x: ':'.join(x.split(':')[:2]))
 
         ## 
-        ##  Check status errors
+        ##  --- Check status errors
         #status = dataframe_from_buffer["Status"].unique().tolist()
         status = dataframe_from_buffer["Status"][-60:].unique().tolist()
         #print("Status:", status)
@@ -964,7 +965,9 @@ def parse_errors(error):
     if error & 128 and error & 256:
         errors.append(f"Error Status(384). Сбой ленты (лента не движется, лента закончилась).\n")
     elif error & 128:
-        errors.append(f"Error Status(128). Предупреждение (осталось менее 30 спотов).\n")
+        ##  писать предупреждение только при протягивании ленты
+        if error & 1 and not (error & 2):
+            errors.append(f"Status(128). Предупреждение (осталось менее 30 спотов).\n")
     elif error & 256:
         errors.append(f"Error Status(256). Последнее предупреждение (осталось менее 5 спотов).\n")
 
