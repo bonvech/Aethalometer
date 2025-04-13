@@ -21,7 +21,10 @@ import telebot_config
 ##  
 ## ----------------------------------------------------------------
 def select_year_month(datastring):
-    return datastring.split()[0][-4:] + '_' + datastring[3:5]
+    #return datastring.split()[0][-4:] + '_' + datastring[3:5]
+    return "_".join([x for x in datastring.split()[0].split('.')[2:0:-1]])
+    #return "_".join([x for x in datastring.split()[0].split('/')[:2]])
+    #return datastring.split('/')[0] + '_' + datastring.split('/')[1]
 
 
 ## ----------------------------------------------------------------
@@ -45,8 +48,8 @@ class AE33_device:
         ## for data files
         self.yy = '0'        ##  year for filename of raw file
         self.mm = '0'        ## month for filename of raw file
-        self.yy_D = '0'      ##  year for filename of D-file
-        self.mm_D = '0'      ## month for filename of D-file 
+        #self.yy_D = '0'      ##  year for filename of D-file
+        #self.mm_D = '0'      ## month for filename of D-file 
         self.datadir = ''    ## work directory name
         self.xlsfilename = ''      ## exl file name
         self.csvfilename = ''      ## csv file name
@@ -353,6 +356,7 @@ class AE33_device:
 
 
     ############################################################################
+    ##  write raw data from buffer to file to check
     ############################################################################
     def write_raw_data_to_file(self):
         print('raw data:  ')
@@ -380,23 +384,13 @@ class AE33_device:
     ## write to ddat data
     ############################################################################
     def parse_format_D_data(self):
-        ##  main
         if len(self.buff) < 10:
             return
 
-        #self.buff = self.buff.split("AE33>")
         if 'ix' in os.name:
             self.buff = self.buff.split("\n")   ## for Linux
         else:
             self.buff = self.buff.split("\r\n") ## for Windows
-
-        lastmm, lastyy = '0', '0'
-        filename = ''
-        lastline = ''
-        need_check = True
-        dateformat = "%Y/%m/%d %H:%M:%S"
-        #print('lines:')
-        #print(self.buff)
 
         ##  --- for excel data
         if self.file_header == '':
@@ -405,20 +399,31 @@ class AE33_device:
         columns = ['Date(yyyy/MM/dd)', 'Time(hh:mm:ss)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6', 'BC7', 'BB(%)', "Status"]
         colnums = [header.index(x) for x in columns]
 
+        lastmm, lastyy = '0', '0'
+        filename = ''
+        lastline = ''
+        need_check = True
+        dateformat = "%Y/%m/%d %H:%M:%S"
+        ym_patterns = []
+
         ##  ---- write from buffer to ddat file --- ##
         rows_list = []
         for line in self.buff[::-1]:  ##  buff has antichronological order
             #print('line:   ',line)
             yy, mm, _ = line.split()[0].split('/')
+            year_month = f"{yy}_{mm}"
 
             ##  --- for first line or new file
-            if mm != lastmm or yy != lastyy:
-                ## -- ddat filename 
-                filename = '_'.join((yy, mm)) + f"_{self.ae_name}.ddat"
+            #if mm != lastmm or yy != lastyy:
+            if year_month not in ym_patterns:
+                ym_patterns.append(year_month)
+                ##  -- new ddat filename 
+                #filename = '_'.join((yy, mm)) + f"_{self.ae_name}.ddat"
+                filename = f"{year_month}_{self.ae_name}.ddat"
                 if not self.datadir.endswith(self.sep):
                     self.datadir += self.sep
                 filename = f"{self.datadir}ddat{self.sep}{filename}"
-                print(filename,mm,yy,lastmm,lastyy)
+                print(filename, mm, yy, lastmm, lastyy)
                 try:
                     ## ddat file exists: read last line datetime
                     with open(filename, 'r') as f:
@@ -451,8 +456,8 @@ class AE33_device:
 
             ##  check line to be added to datafile
             if need_check: # and len(lastline):
-                nowtime  = line.split()[0] + ' ' + line.split()[1]
-                nowtime  = datetime.strptime(nowtime,  dateformat)
+                nowtime = line.split()[0] + ' ' + line.split()[1]
+                nowtime = datetime.strptime(nowtime,  dateformat)
                 ## if line was printed earlier
                 if nowtime <= lasttime:
                     continue
@@ -464,18 +469,18 @@ class AE33_device:
                 f.write(line + '\n')
         ##  ---- end of write from buffer to ddat file --- ##
         
+        ##  --- read ddat file and write to tables
+        ##  get year_month patterns
+        print(ym_patterns)
+        for year_month in ym_patterns:
+            filename = f"{year_month}_{self.ae_name}.ddat"
+            filename = f"{self.datadir}ddat{self.sep}{filename}"
+            self.convert_one_dat_file_to_table_file(filename)
+        
         ##  --- make dataframe_from_buffer
-        #print("\n\n\n!!!!!!!!!!", rows_list)
+        ##print("\n\n\n!!!!!!!!!!", rows_list)
         dataframe_from_buffer = pd.DataFrame(rows_list, columns=columns)     
         
-        ##  reformat datetime string
-        dataframe_from_buffer['Datetime'] = dataframe_from_buffer['Date(yyyy/MM/dd)'].apply(lambda x: ".".join(x.split('/')[::-1])) \
-                + ' ' \
-                + dataframe_from_buffer['Time(hh:mm:ss)'].apply(lambda x: ':'.join(x.split(':')[:2]))
-
-        ##  --- save to tables
-        self.write_dataframe_to_excel_file(dataframe_from_buffer[self.xlscolumns])
-
         ##
         ##  --- Check status errors
         ##
@@ -490,12 +495,60 @@ class AE33_device:
             errors = "".join(errors)
             self.write_to_bot(errors)
             print("Status:", errors)
+   
+   
+    ############################################################################
+    ### 
+    ############################################################################
+    def convert_one_dat_file_to_table_file(self, filename):     
+        df = read_dataframe_from_ddat_file(filename)
+        if "s0" in df.columns:
+            df = manage_external_devices(df)
+        
+        ##  --- save to tables
+        #self.write_dataframe_to_excel_file(dataframe_from_buffer[self.xlscolumns])
+        self.write_dataframe_to_table_files(df)
 
 
     ############################################################################
     ### write dataframe to excel file
     ### \return - no return
-    ###
+    ############################################################################
+    def write_dataframe_to_table_files(self, dataframe):
+        """ write dataframe to table files """
+        print("write_dataframe_to_table_files")
+        
+        ##  extract year and month from data
+        year_month = dataframe['Datetime'].apply(select_year_month).unique()
+
+        ##  prepare directory
+        table_dirname = self.datadir + 'table' + self.sep
+        if not os.path.isdir(table_dirname):
+            os.makedirs(table_dirname)
+
+        ##  write to table data file
+        for ym_pattern in year_month:
+            #print(ym_pattern, end=' ')
+            filenamexls = table_dirname + ym_pattern + '_' + self.ae_name + ".xlsx"
+            filenamecsv = table_dirname + ym_pattern + '_' + self.ae_name + ".csv"
+            self.xlsfilename = filenamexls
+            self.csvfilename = filenamecsv
+
+            ## отфильтровать строки за нужный месяц и год
+            dfsave = dataframe[dataframe['Datetime'].apply(select_year_month) == ym_pattern]
+            text = f"{ym_pattern}: {dfsave.shape}"
+            self.print_message(text, '\n')
+
+            print(f"write to {filenamecsv}")
+            dfsave.set_index('Datetime').to_csv(filenamecsv, float_format='%g') #.3f')
+            print(f"write to {filenamexls}")
+            dfsave.set_index('Datetime').to_excel(filenamexls, engine='openpyxl')
+            return 0
+
+
+    ############################################################################
+    ### write dataframe to excel file
+    ### \return - no return
     ############################################################################
     def write_dataframe_to_excel_file(self, dataframe):
         """ write dataframe to excel file """
@@ -598,39 +651,6 @@ class AE33_device:
             self.print_message(text, '\n')
 
         return datum
-
-
-    # ############################################################################
-    # ############################################################################
-    # def read_dataframe_from_excel_file(self, xlsfilename):
-        # #columns = ['Date', 'Time (Moscow)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6',
-        # #    'BC7', 'BB(%)', 'BCbb', 'BCff', 'Date.1', 'Time (Moscow).1']
-        # columns = self.xlscolumns
-        # create_new = False
-
-        # try:
-            # ## read excel file to dataframe
-            # ## need to make "pip install openpyxl==3.0.9" if there are problems with excel file reading
-            # datum = pd.read_excel(xlsfilename)
-            # print(xlsfilename, "read, df: ", datum.shape)
-            # print(datum.head(2))
-            # if datum.shape[1] != len(columns) + 2:
-                # text = f"WARNING!!! File {xlsfilename} has old format, is ignoring!!!"
-                # self.print_message(text, '\n')
-
-                # point = xlsfilename.rfind('.')
-                # os.rename(xlsfilename, xlsfilename[:point] + "_old" +  xlsfilename[point:])
-                # create_new = True
-        # except:
-            # create_new = True
-
-        # if create_new:
-            # # create new dummy dataframe
-            # datum = pd.DataFrame(columns=columns)
-            # text = "Can not open file: " + xlsfilename + "  Empty dummy dataframe created"
-            # self.print_message(text, '\n')
-
-        # return datum
 
 
     ############################################################################
@@ -754,12 +774,132 @@ class AE33_device:
         return data
 
 
-############################################################################
-############################################################################
-def select_year_month(datastring):
-    return "_".join([x for x in datastring.split()[0].split('.')[2:0:-1]])
-    #return "_".join([x for x in datastring.split()[0].split('/')[:2]])
-    #return datastring.split('/')[0] + '_' + datastring.split('/')[1]
+    ############################################################################
+    ############################################################################
+def get_columns(filename):
+    standart_head = "Date(yyyy/MM/dd); Time(hh:mm:ss); Timebase; RefCh1; Sen1Ch1; Sen2Ch1; RefCh2; Sen1Ch2; Sen2Ch2; RefCh3; Sen1Ch3; Sen2Ch3; RefCh4; Sen1Ch4; Sen2Ch4; RefCh5; Sen1Ch5; Sen2Ch5; RefCh6; Sen1Ch6; Sen2Ch6; RefCh7; Sen1Ch7; Sen2Ch7; Flow1; Flow2; FlowC; Pressure(Pa); Temperature(°C); BB(%); ContTemp; SupplyTemp; Status; ContStatus; DetectStatus; LedStatus; ValveStatus; LedTemp; BC11; BC12; BC1; BC21; BC22; BC2; BC31; BC32; BC3; BC41; BC42; BC4; BC51; BC52; BC5; BC61; BC62; BC6; BC71; BC72; BC7; K1; K2; K3; K4; K5; K6; K7; TapeAdvCount; "
+    standart_columns = standart_head.split("; ")[:-1]
+
+    with open(filename, encoding='windows-1252') as f:
+        data = f.readlines()
+        head = [line for line in data if line.startswith('Date')][0].strip()
+        if "Temperature(Â°C)" in head:
+            head = head.replace("Temperature(Â°C)", "Temperature(°C)")
+        if "BB (%)" in head:
+            head = head.replace("BB (%)", "BB(%)")
+        #print(head)
+
+    columns = [x.strip() for x in head.split(";")[:-1]]    
+    if columns != standart_columns:
+        print("Warning! Columns differ from standart columns!!")
+        print(f"Extra column in columns: {set(columns) - set(standart_columns)}\n" * bool(set(columns) - set(standart_columns))
+            + f"Extra column in standart_columns: {set(standart_columns) - set(columns)}" * bool(set(standart_columns) - set(columns)))
+        columns = standart_columns
+
+    numcols = max([len(line.split()) for line in data])
+    if len(columns) < numcols:
+        columns = columns + [f"s{i}" for i in range(numcols - len(columns))]
+        #print(f'new columns: {columns}')
+    return  columns
+    
+
+    ############################################################################
+    ############################################################################
+def rows_to_skip(filename):
+    """ calculate number of rows to skip"""
+    with open(filename, encoding='windows-1252') as f:
+        head = [i for i,line in enumerate(f.readlines()) if line.startswith('Date')][0]
+        print(f"lines to skip: {head}")
+    return head + 1
+
+
+    ############################################################################
+    ############################################################################
+def read_dataframe_from_ddat_file(filename):
+    """ read ddat or dat file"""
+    ##  read data file 
+    columns = get_columns(filename)
+    df = pd.read_csv(filename, sep=r'\s+', index_col=None, names=columns,
+                            skiprows=rows_to_skip(filename), 
+                            on_bad_lines='skip', 
+                            skip_blank_lines=True, encoding='windows-1252')
+    print(df.shape)
+
+    ##  skip bad time lines
+    df = df.dropna(subset=["Date(yyyy/MM/dd)", 'Time(hh:mm:ss)'])
+    df = df.drop(df[df["Date(yyyy/MM/dd)"].str.startswith('Date')].index)
+    #print("dd:", [x for x in list(df["Date(yyyy/MM/dd)"]) if '/' not in str(x)])
+    #print("tt:", [x for x in list(df['Time(hh:mm:ss)']) if ':' not in str(x)])
+    df = df[df["Date(yyyy/MM/dd)"].str.contains('/')]
+    df = df[df['Time(hh:mm:ss)'].str.contains(':')]
+    print(df.shape)
+
+    ##  reformat and add columns
+    if "BB (%)" in df.columns:
+        df = df.rename(columns={"BB (%)": "BB(%)"})
+    for com in ['BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6', 'BC7']:
+        df[com] = df[com].astype(int)
+    df.insert(0, "Datetime", df.apply(lambda row: ".".join(row['Date(yyyy/MM/dd)'].split('/')[::-1]) + ' '
+                                                + ':'.join(row['Time(hh:mm:ss)'].split(':')[:2]), axis=1))
+
+    ##  select columns to table
+    table_columns  = ['Datetime', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6', 'BC7', 'BB(%)', "Status"]
+    table_columns += [column for column in df.columns if column.startswith("s")]
+    df = df[table_columns]
+
+    ##  add timestamp column
+    df["timestamp"] = df.apply(lambda row: int(datetime.strptime(row["Datetime"], "%d.%m.%Y %H:%M").timestamp()), axis=1) ## 01.01.2025 00:00                                               
+    ##  add BCbb and BCff columns
+    bbcol = [col for col in df.columns if ('BB' in col) and ('%' in col)][0] ##  'BB(%)' or 'BB (%)'
+    df[bbcol] = df[bbcol].astype(float)
+    df.loc[:,['BCbb']] = df.apply(lambda row:        row[bbcol]  / 100 * row['BC5'], axis=1)
+    df.loc[:,['BCff']] = df.apply(lambda row: (100 - row[bbcol]) / 100 * row['BC5'], axis=1)
+
+    print(df.shape)
+    return df
+
+
+    ############################################################################
+    ############################################################################
+def manage_external_devices(df):
+    external_devices = { 
+        ##  [name, description, Data line]
+        3:  ["Vaisala_GMP343", "CO2 sensor", 
+            "CO2 [ppm], CO2RAW [ppm], T [°C]"], 
+        #5:  ["Datalogger_AE33_protocol", "the port is enabled for communication with the data-logger", ""],
+        6:  ["Aerosol_inlet_dryer", "Sample stream dryer - temperature, RH, dew point sensor", 
+            "Tin [°C], RHin [%], Td-in [°C], Tout [°C], RHout [%], Td-out [°C]"],
+        17: ["Gill_GMX200", "Ultrasonic wind speed & direction sensor", 
+            "wind speed [m/s], wind direction [°], wind direction corrected [°], status17"],
+        18: ["Gill_GMX300", "Temperature, Humidity & Pressure Sensor", 
+            "T [°C], RH [%], P [bar], Td [°C], status18"],
+        19: ["Gill_GMX500", "Compact weather station - temperature, humidity & pressure and wind speed and direction", 
+            "T [°C], RH [%], P [bar], Td [°C], wind speed [m/s], wind direction [°], wind direction corrected [°], status19"]
+        }
+
+    ##  extract devices
+    devices = [df[com].dropna().unique().tolist() for com in ["s0", "s1", "s2"]]
+    devices = [int(item) for sublist in devices for item in sublist if item!=0]
+    print(f"devices: {devices}")
+
+    ##  extract columns for external devices
+    external_columns = [external_devices[device][2].split(", ") for device in devices if (device in external_devices) and (device not in [0, 5])]        
+    external_columns = [item for sublist in external_columns for item in sublist]
+    print(f"external_columns: {external_columns}")
+
+    ##  find extra columns in df
+    df_external_columns = [col for col in df.columns if col.startswith("s") and col not in ["s0", "s1", "s2"]]
+    #print(df_external_columns)
+
+    ##  merge and rename columns
+    if len(df_external_columns) < len(external_columns):
+        print(f"Error! No enough columns to read external data. {len(df_external_columns)} < {len(external_columns)}")
+    elif len(df_external_columns) == len(external_columns):
+        merge_dirt = {old:new for old,new in zip(df_external_columns, external_columns)}
+        df = df.rename(columns=merge_dirt)
+    
+    return df
+
 
 
 ############################################################################
