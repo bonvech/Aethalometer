@@ -201,6 +201,8 @@ class AE33_device:
             path = f"{self.datadir}{dirname}{self.sep}"
             if not os.path.isdir(path):
                 os.makedirs(path)
+            if dirname == 'log':
+                self.logdirname = path
 
 
     ############################################################################
@@ -399,14 +401,12 @@ class AE33_device:
         columns = ['Date(yyyy/MM/dd)', 'Time(hh:mm:ss)', 'BC1', 'BC2', 'BC3', 'BC4', 'BC5', 'BC6', 'BC7', 'BB(%)', "Status"]
         colnums = [header.index(x) for x in columns]
 
-        lastmm, lastyy = '0', '0'
+        ##  ---- write from buffer to ddat file --- ##
         filename = ''
         lastline = ''
         need_check = True
         dateformat = "%Y/%m/%d %H:%M:%S"
         ym_patterns = []
-
-        ##  ---- write from buffer to ddat file --- ##
         rows_list = []
         for line in self.buff[::-1]:  ##  buff has antichronological order
             #print('line:   ',line)
@@ -414,7 +414,6 @@ class AE33_device:
             year_month = f"{yy}_{mm}"
 
             ##  --- for first line or new file
-            #if mm != lastmm or yy != lastyy:
             if year_month not in ym_patterns:
                 ym_patterns.append(year_month)
                 ##  -- new ddat filename 
@@ -423,7 +422,6 @@ class AE33_device:
                 if not self.datadir.endswith(self.sep):
                     self.datadir += self.sep
                 filename = f"{self.datadir}ddat{self.sep}{filename}"
-                print(filename, mm, yy, lastmm, lastyy)
                 try:
                     ## ddat file exists: read last line datetime
                     with open(filename, 'r') as f:
@@ -442,8 +440,6 @@ class AE33_device:
                     self.print_message(text, '\n')
                     lastline = []
                     need_check = False
-                lastmm = mm
-                lastyy = yy
 
             ##  add line data to dataframe
             line_to_dataframe = [line.split()[i] for i in colnums]
@@ -684,7 +680,6 @@ class AE33_device:
             self.ae_name = current_ae_name
         #print(self.ae_name)
         self.fill_header()
-
 
         ## --- read data
         columns = self.head.split("; ")[:-1] + [str(i) for i in range(1, 10)]
