@@ -159,37 +159,6 @@ class AE33_device:
 
 
     ############################################################################
-    ## read config file "PATHFILES.CNF"
-    ############################################################################
-    def read_path_file(self):
-        # check file
-        try:
-            #f = open("PATHFILES.CNF")
-            f = open("ae33_config.py")
-            params = [x.replace('\n','') for x in f.readlines() if x[0] != '#']
-            f.close()
-        except:
-            print("Error!! No config file PATHFILES.CNF\n\n")
-            return -1
-
-        for param in params:
-            if "RUN" in param:
-                self.run_mode = int(param.split('=')[1])
-            elif "IP" in param:
-                self.IPname = param.split('=')[1].split()[0]
-                self.Port   = int(param.split('=')[1].split()[1])
-            elif "MINID" in param:
-                self.MINID = int(param.split('=')[1])
-                self.MAXID = self.MINID
-            else:
-                self.datadir = param
-                ##  add separator to end of dirname
-                if self.datadir[-1] != self.sep:
-                    print('add sep', self.datadir)
-                    self.datadir += self.sep
-                
-
-    ############################################################################
     ##  check and create dirs for data 
     ############################################################################
     def prepare_dirs(self):
@@ -320,6 +289,7 @@ class AE33_device:
             print_message("ERROR! Name of device is not AE33 or AE43")
 
         self.buff = buff2[0]
+        #print(self.buff)
 
         ### --- operate with command
         if "HELLO" in command:
@@ -343,7 +313,10 @@ class AE33_device:
             #self.write_raw_data_to_file()
             if "AE33:D" in command:
                 self.parse_format_D_data()
-
+            ##  request('$AE33:A',0,0)
+            if "AE33:A" in command:
+                self.leftspots = int(self.buff)
+                print(f"Осталось {self.leftspots} спотов")
         return 0
 
 
@@ -488,6 +461,13 @@ class AE33_device:
                         key=lambda x: int(x.split("(")[1].split(")")[0])
                        )
         if errors:
+            ##  if Status(1). Протягивание ленты
+            #if "спотов" in errors:
+            if "Status(1)" in errors:
+                self.request('$AE33:A',0,0)
+                errors += f" Осталось {self.leftspots} спотов"
+            
+            ##  print errors to bot
             errors = "".join(errors)
             self.write_to_bot(errors)
             print("Status:", errors)
