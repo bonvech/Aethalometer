@@ -30,8 +30,8 @@ try:
     device.request('$AE33:D' + str(delay), 0, 0)  ##
    
     ##  get device name
-    print("\n=== request('A' ) Запрос на оставшееся количество ленты =======")
-    device.request('$AE33:A',0,0)
+    #print("\n=== request('A' ) Запрос на оставшееся количество ленты =======")
+    #device.request('$AE33:A',0,0)
 
     ##  close connection
     print("\n==========  close connection =========================")
