@@ -23,7 +23,6 @@ try:
     ##  за сутки   1440 измерений  ~     600 000 bytes
     ##  за месяц  43200 измерений  ~  20 000 000 bytes
 
-
     ##  request for data
     print("\n========== request('$AE33:D') =========================")
     delay = 100
@@ -41,7 +40,7 @@ try:
     ##  save config
     #device.write_config_file()
 except Exception as error:
-    device.write_to_bot(f"{device.device_name}: Final Error in main programm: {error}. The programm stopped. Start new programm now!")
+    device.write_to_bot(f"{device.device_name}: Final Error in main programm: {error}.")
 
 
 

@@ -286,7 +286,7 @@ class AE33_device:
         elif "AE43" in buff2:
             buff2 = buff2.split("\r\nAE43>")
         else:
-            print_message("ERROR! Name of device is not AE33 or AE43")
+            self.print_message("ERROR! Name of device is not AE33 or AE43")
 
         self.buff = buff2[0]
         #print(self.buff)
@@ -316,7 +316,7 @@ class AE33_device:
             ##  request('$AE33:A',0,0)
             if "AE33:A" in command:
                 self.leftspots = int(self.buff)
-                print(f"Осталось {self.leftspots} спотов")
+                self.print_message(f"Осталось {self.leftspots} спотов")
         return 0
 
 
@@ -461,20 +461,21 @@ class AE33_device:
                         key=lambda x: int(x.split("(")[1].split(")")[0])
                        )
         if errors:
+            errors = "".join(errors)
+            
             ##  if Status(1). Протягивание ленты
             #if "спотов" in errors:
-            if "Status(1)" in errors:
+            if "(1)" in errors:
                 self.request('$AE33:A',0,0)
                 errors += f" Осталось {self.leftspots} спотов"
             
             ##  print errors to bot
-            errors = "".join(errors)
             self.write_to_bot(errors)
-            print("Status:", errors)
+            self.print_message("Status:", errors)
    
    
     ############################################################################
-    ### 
+    ### convert one dat or ddat file to table
     ############################################################################
     def convert_one_dat_file_to_table_file(self, filename):     
         df = read_dataframe_from_ddat_file(filename)
