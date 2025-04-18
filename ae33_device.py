@@ -467,7 +467,9 @@ class AE33_device:
             #if "спотов" in errors:
             if "(1)" in errors:
                 self.request('$AE33:A',0,0)
-                errors += f" Осталось {self.leftspots} спотов"
+                if errors.endswith("\n"):
+                    errors = errors[:-1]
+                errors += f" Осталось {self.leftspots} спотов."
             
             ##  print errors to bot
             self.write_to_bot(errors)
