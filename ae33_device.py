@@ -543,15 +543,16 @@ class AE33_device:
 
         ##  extract year and month from data
         year_month = dataframe['Datetime'].apply(select_year_month).unique()
+        print(year_month)
 
         ##  prepare directory
-        table_dirname = self.datadir + 'table' + self.sep
+        table_dirname = f"{self.datadir}table{self.sep}"
         if not os.path.isdir(table_dirname):
             os.makedirs(table_dirname)
 
         ##  write to table data file
         for ym_pattern in year_month:
-            #print(ym_pattern, end=' ')
+            print(ym_pattern, end=' ')
             filenamexls = table_dirname + ym_pattern + '_' + self.ae_name + ".xlsx"
             filenamecsv = table_dirname + ym_pattern + '_' + self.ae_name + ".csv"
             self.xlsfilename = filenamexls
@@ -596,7 +597,7 @@ class AE33_device:
             dfsave.set_index('Datetime').to_csv(filenamecsv, float_format='%g') #.3f')
             print(f"write to {filenamexls}")
             dfsave.set_index('Datetime').to_excel(filenamexls, engine='openpyxl')
-            return 0
+        return 0
 
 
     ############################################################################
@@ -655,18 +656,18 @@ class AE33_device:
             print("standard header:\n", self.head[:-4])
 
         ## --- check device name
-        current_ae_name = [x.split()[-1] for x in header if 'AE' in x][0]
+        current_ae_name = [x.split()[-1] for x in header if 'AE' in x][-1]
         if self.ae_name == '':
             self.ae_name = current_ae_name
         if self.ae_name != current_ae_name:
             print("Current device has different name:", current_ae_name)
             self.ae_name = current_ae_name
-        #print(self.ae_name)
+        print(self.ae_name, current_ae_name)
         self.fill_header()
 
         ## --- read data
         columns = self.head.split("; ")[:-1] + [str(i) for i in range(1, 10)]
-        print(columns)
+        #print(columns)
         #print(len(columns), end=' ')
         print(filename)
         datum = pd.read_csv(filename, sep=r"\s+", on_bad_lines='warn', 
@@ -733,8 +734,9 @@ class AE33_device:
             return data ## return empty dataframe
 
         # перебрать все файлы и считать из них
-        year = 2022 ### \todo Add many years 
-        for month in ['05', '06']: ### \todo Add all months
+        year = 2025 ### \todo Add many years 
+        #for month in ['05', '06']: ### \todo Add all months
+        for month in [f'{mm:02}' for mm in range(1, 13)]: ### \todo Add all months
             for day in range(1, 32):
                 filename = dirname + 'AE33_' + self.ae_name + '_' \
                          + f"{year}{month}{day:02d}" + end 

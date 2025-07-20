@@ -1,0 +1,16 @@
+#!/bin/bash
+pathtopython=~/Meteo/env/bin/
+workdir=~/Meteo/Приборы/AE-33/data/AE_missing
+
+#ls
+
+echo start
+date
+
+#cd $workdir
+
+${pathtopython}python3 test_device_collect.py 
+#${pathtopython}python3 AE43_converter.py 
+#&>>$workdir/ftp.log
+
+echo end
